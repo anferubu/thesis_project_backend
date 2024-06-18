@@ -1,22 +1,43 @@
+"""
+Sets the FastAPI application settings.
+
+It sets up the application with necessary configurations, middleware, static
+files, templates, and routes.
+
+(*) Add a description for the API.
+
+"""
+
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from core.logging import LogRequestsMiddleware
+from core.exceptions import validation_exception_handler
+from core.routers import router
 from core.secrets import env
 
 
 
-# Application description
-DEBUG = env.app_debug
-
 description = """
-Description here...
+This API is designed to manage the comprehensive information of a motorcycle
+club, including member details, event planning, and various other related
+activities. The API ensures secure access and data integrity through robust
+authentication and authorization mechanisms, making it an essential tool for
+the smooth operation of motorcycle clubs.
+
+This API aims to streamline the administrative tasks of motorcycle clubs,
+allowing them to focus more on their passion for riding and community building.
 """
 
+DEBUG = env.app_debug
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+# API definition
 app = FastAPI(
     debug=env.app_debug,
     title=env.app_name,
@@ -37,23 +58,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
-app.add_middleware(LogRequestsMiddleware)
 
 
 # Routes added
-from core.auth.routers import auth
-
-app.include_router(auth)
+app.include_router(router)
 
 
-# Directories definition
-BASE_DIR = Path(__file__).resolve().parent.parent
+# Static File (Images, JS, CSS) settings
 STATIC_FILES_DIR = BASE_DIR / "static"
-TEMPLATES_DIR = BASE_DIR / "templates"
-EMAIL_TEMPLATES_DIR = TEMPLATES_DIR / "email"
 
-
-# Static File (Images, JS, CSS)
 app.mount(
     "/static",
     StaticFiles(directory=STATIC_FILES_DIR),
@@ -61,5 +74,14 @@ app.mount(
 )
 
 
-# Templates
+# Templates settings
+TEMPLATES_DIR = BASE_DIR / "templates"
+
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
+
+
+# Exception handlers added
+app.add_exception_handler(
+    RequestValidationError,
+    validation_exception_handler
+)

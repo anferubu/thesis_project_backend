@@ -1,5 +1,9 @@
 """
-Define a settings class to manage environment variables
+Defines a settings class to manage environment variables.
+
+Environment variables must be defined in a .env file located in the root of
+the project.
+
 """
 
 from pydantic_settings import BaseSettings
@@ -25,7 +29,6 @@ class EnvSettings(BaseSettings):
 
     allowed_hosts: str
     allow_origins: str
-
 
 
 env = EnvSettings(_env_file=".env")

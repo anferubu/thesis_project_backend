@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Confirmación de Correo Electrónico</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+        }
+        .header h1 {
+            color: #0066cc;
+        }
+        .content {
+            margin-top: 20px;
+        }
+        .content p {
+            margin-bottom: 20px;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            border: 1px solid #0066cc;
+            border-radius: 5px;
+        }
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Confirmación de Correo Electrónico</h1>
+        </div>
+        <div class="content">
+            <p>Hola, {{ username }}!</p>
+            <p>Gracias por registrarte en nuestra plataforma. Por favor, confirma tu dirección de correo electrónico haciendo clic en el siguiente enlace:</p>
+            <p style="text-align: center;">
+                <a href="{{ confirmation_link }}" class="button">Confirmar Email</a>
+            </p>
+            <p>Si no puedes hacer clic en el enlace, copia y pega la siguiente URL en tu navegador:</p>
+            <p><a href="{{ confirmation_link }}">{{ confirmation_link }}</a></p>
+            <p>Si no has solicitado este correo, por favor ignóralo.</p>
+            <p>Gracias,</p>
+            <p>Motorapp</p>
+        </div>
+        <div class="footer">
+            <p>© 2024 Motorapp. Todos los derechos reservados.</p>
+        </div>
+    </div>
+</body>
+</html>
