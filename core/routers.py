@@ -18,12 +18,16 @@ router.include_router(module_router, prefix="/module", tags=["Module"])
 from fastapi import APIRouter
 
 # Add all routers from apps
-from api.auth.routers import router as auth_router
-from api.roles.routers import router as roles_router
+from api.routers.agreements import agreement, company
+from api.routers.events import event, participation, review, path
 
 
 
 router = APIRouter()
 
-router.include_router(auth_router, prefix="", tags=["auth"])
-router.include_router(roles_router, prefix="", tags=["roles"])
+router.include_router(agreement, tags=["agreements"])
+router.include_router(company, tags=["companies"])
+router.include_router(event, tags=["events"])
+router.include_router(participation, tags=["participations"])
+router.include_router(review, tags=["reviews"])
+router.include_router(path, tags=["paths"])

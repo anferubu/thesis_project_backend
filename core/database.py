@@ -13,6 +13,8 @@ It includes:
   4. Apply the migration to create the table with:
        $ alembic upgrade head
 
+  Then, review the order in which the tables are created in the migration file.
+
 """
 
 from typing import Annotated
@@ -45,5 +47,4 @@ DBSession = Annotated[Session, Depends(get_db_session)]
 
 
 # Add all models from api
-from api.auth.models import User
-from api.roles.models import Role
+from api.models import agreements, events, feedbacks, posts, teams, users

@@ -11,12 +11,10 @@ files, templates, and routes.
 from pathlib import Path
 
 from fastapi import FastAPI
-from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from core.exceptions import validation_exception_handler
 from core.routers import router
 from core.secrets import env
 
@@ -39,7 +37,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # API definition
 app = FastAPI(
-    debug=env.app_debug,
+    debug=DEBUG,
     title=env.app_name,
     summary=f"{env.app_name} API",
     description=description,
@@ -78,10 +76,3 @@ app.mount(
 TEMPLATES_DIR = BASE_DIR / "templates"
 
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
-
-
-# Exception handlers added
-app.add_exception_handler(
-    RequestValidationError,
-    validation_exception_handler
-)
