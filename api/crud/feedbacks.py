@@ -1,7 +1,7 @@
 from sqlmodel import Session, select
 
+from api.crud.utils import apply_filters, apply_sorting
 from api.models.feedbacks import Feedback, FeedbackAnswer
-from api.models.utils.enums import FeedbackStatus, FeedbackType
 from api.schemas.feedbacks import (
    FeedbackCreate, FeedbackUpdate, FeedbackAnswerCreate, FeedbackAnswerUpdate)
 
@@ -32,23 +32,20 @@ def list_feedbacks(
     session:Session,
     skip:int|None=None,
     limit:int|None=None,
-    feedback_type:FeedbackType|None=None,
-    status:FeedbackStatus|None=None,
-    member_id:int|None=None
+    sort: dict[str, str]|None = None,
+    filter: dict[str, any]|None = None
 ) -> list[Feedback]:
     """List feedbacks."""
 
     query = select(Feedback).where(Feedback.deleted == False)
+    if filter:
+        query = apply_filters(query, Feedback, filter)
+    if sort:
+        query = apply_sorting(query, Feedback, sort)
     if skip is not None:
         query = query.offset(skip)
     if limit is not None:
         query = query.limit(limit)
-    if feedback_type is not None:
-        query = query.where(Feedback.type == feedback_type)
-    if status is not None:
-        query = query.where(Feedback.status == status)
-    if member_id is not None:
-        query = query.where(Feedback.member_id == member_id)
     return session.exec(query).all()
 
 
@@ -114,20 +111,20 @@ def list_feedback_answers(
     session:Session,
     skip:int|None=None,
     limit:int|None=None,
-    member_id:int|None=None,
-    feedback_id:int|None=None
+    sort: dict[str, str]|None = None,
+    filter: dict[str, any]|None = None
 ) -> list[FeedbackAnswer]:
     """List feedback_answers."""
 
     query = select(FeedbackAnswer).where(FeedbackAnswer.deleted == False)
+    if filter:
+        query = apply_filters(query, FeedbackAnswer, filter)
+    if sort:
+        query = apply_sorting(query, FeedbackAnswer, sort)
     if skip is not None:
         query = query.offset(skip)
     if limit is not None:
         query = query.limit(limit)
-    if member_id is not None:
-        query = query.where(FeedbackAnswer.member_id == member_id)
-    if feedback_id is not None:
-        query = query.where(FeedbackAnswer.feedback_id == feedback_id)
     return session.exec(query).all()
 
 

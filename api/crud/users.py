@@ -1,10 +1,13 @@
+from datetime import date
+
 from sqlalchemy import func
 from sqlmodel import select, Session
 
+from api.crud.utils import apply_filters, apply_sorting
 from api.models.users import Brand, Profile, Motorcycle, Role, User
 from api.schemas.users import (
     RoleCreate, RoleUpdate, BrandCreate, BrandUpdate, MotorcycleCreate,
-    MotorcycleUpdate, UserCreate, UserUpdate, MemberCreate, MemberUpdate)
+    MotorcycleUpdate, UserCreate, UserUpdate)
 from api.utils.security.hashing import get_password_hash
 
 
@@ -41,11 +44,19 @@ def get_role_by_name(session:Session, name:str) -> Role|None:
 
 
 def list_roles(
-    session:Session, skip:int|None=None, limit:int|None=None
+    session:Session,
+    skip:int|None=None,
+    limit:int|None=None,
+    sort: dict[str, str]|None = None,
+    filter: dict[str, any]|None = None
 ) -> list[Role]:
     """List roles."""
 
     query = select(Role).where(Role.deleted == False)
+    if filter:
+        query = apply_filters(query, Role, filter)
+    if sort:
+        query = apply_sorting(query, Role, sort)
     if skip is not None:
         query = query.offset(skip)
     if limit is not None:
@@ -121,20 +132,20 @@ def list_motorcycles(
     session:Session,
     skip:int|None=None,
     limit:int|None=None,
-    brand_id:int|None=None,
-    member_id:int|None=None
+    sort: dict[str, str]|None = None,
+    filter: dict[str, any]|None = None
 ) -> list[Motorcycle]:
     """List motorcycles."""
 
     query = select(Motorcycle).where(Motorcycle.deleted == False)
+    if filter:
+        query = apply_filters(query, Motorcycle, filter)
+    if sort:
+        query = apply_sorting(query, Motorcycle, sort)
     if skip is not None:
         query = query.offset(skip)
     if limit is not None:
         query = query.limit(limit)
-    if brand_id is not None:
-        query = query.where(Motorcycle.brand_id == brand_id)
-    if member_id is not None:
-        query = query.where(Motorcycle.member_id == member_id)
     return session.exec(query).all()
 
 
@@ -203,11 +214,19 @@ def get_brand_by_name(session:Session, name:str) -> Brand|None:
 
 
 def list_brands(
-    session:Session, skip:int|None=None, limit:int|None=None
+    session:Session,
+    skip:int|None=None,
+    limit:int|None=None,
+    sort: dict[str, str]|None = None,
+    filter: dict[str, any]|None = None
 ) -> list[Brand]:
     """List brands."""
 
     query = select(Brand).where(Brand.deleted == False)
+    if filter:
+        query = apply_filters(query, Brand, filter)
+    if sort:
+        query = apply_sorting(query, Brand, sort)
     if skip is not None:
         query = query.offset(skip)
     if limit is not None:
@@ -250,15 +269,20 @@ def delete_brand(
 
 # User model CRUD
 
-def create_user(session:Session, user_create:UserCreate) -> User:
-    new_user = User.model_validate(
-        user_create,
-        update={"password": get_password_hash(user_create.password)}
+def create_user(session:Session, data:UserCreate) -> User:
+    """Create a user (and its profile)."""
+
+    user_data = data.model_dump(exclude={"profile"})
+    profile_data = data.profile.model_dump()
+    user = User.model_validate(
+        user_data,
+        update={"password": get_password_hash(data.password)}
     )
-    session.add(new_user)
+    profile = Profile(**profile_data, user=user)
+    session.add_all([user, profile])
     session.commit()
-    session.refresh(new_user)
-    return new_user
+    session.refresh(user)
+    return user
 
 
 
@@ -267,6 +291,14 @@ def get_user_by_id(session:Session, user_id:int) -> User|None:
 
     user = session.get(User, user_id)
     return user if user and not user.deleted else None
+
+
+
+def get_profile_by_id(session:Session, profile_id:int) -> Profile|None:
+    """Get a profile by its ID."""
+
+    profile = session.get(Profile, profile_id)
+    return profile if profile and not profile.deleted else None
 
 
 
@@ -283,17 +315,25 @@ def get_user_by_username(session:Session, username:str) -> User|None:
 def get_user_by_email(session:Session, email:str) -> User|None:
     """Get a user by its email."""
 
-    query = select(User).where(User.email == email,User.deleted == False)
+    query = select(User).where(User.email == email, User.deleted == False)
     return session.exec(query).first()
 
 
 
 def list_users(
-    session:Session, skip:int|None=None, limit:int|None=None
+    session:Session,
+    skip:int|None=None,
+    limit:int|None=None,
+    sort: dict[str, str]|None = None,
+    filter: dict[str, any]|None = None
 ) -> list[User]:
     """List users."""
 
     query = select(User).where(User.deleted == False)
+    if filter:
+        query = apply_filters(query, User, filter)
+    if sort:
+        query = apply_sorting(query, User, sort)
     if skip is not None:
         query = query.offset(skip)
     if limit is not None:
@@ -303,28 +343,35 @@ def list_users(
 
 
 def update_user(session:Session, user_id:int, data:UserUpdate) -> User|None:
-    """Update a user."""
+    """Update a user (and its profile)."""
 
     user = session.get(User, user_id)
-    if user:
-        for field, value in data.model_dump(exclude_unset=True).items():
-            setattr(user, field, value)
-        session.commit()
-        session.refresh(user)
+    user_data = data.model_dump(exclude_unset=True, exclude={"profile"})
+    for key, value in user_data.items():
+        setattr(user, key, value)
+    if data.profile:
+        profile_data = data.profile.model_dump(exclude_unset=True)
+        for key, value in profile_data.items():
+            setattr(user.profile, key, value)
+    session.commit()
+    session.refresh(user)
     return user
 
 
 
 def delete_user(session:Session, user_id:int, hard:bool=False) -> None:
-    """Delete a user."""
+    """Delete a user (and its profile)."""
 
     user = session.get(User, user_id)
     if user:
         if hard:
+            if user.profile:
+                session.delete(user.profile)
             session.delete(user)
             session.commit()
         else:
             user.deleted = True
+            user.profile.deleted = True
             session.commit()
             session.refresh(user)
 
@@ -338,3 +385,40 @@ def change_password(session:Session, user_id:int, new_password:str) -> User:
     session.commit()
     session.refresh(user)
     return user
+
+
+
+def list_users_birthday_is_today(session:Session) -> list[User]:
+    """Get users whose birthday is today."""
+
+    today = date.today()
+    query = select(User).where(
+        User.deleted == False,
+        User.profile.has(Profile.birthdate == today)
+    )
+    return session.exec(query).all()
+
+
+
+def list_users_by_birthdate(session:Session, date:date) -> list[User]:
+    """List users by its birthdate."""
+
+    query = select(User).where(
+        User.deleted == False,
+        User.profile.has(Profile.birthdate == date)
+    )
+    return session.exec(query).all()
+
+
+
+def list_users_by_birthdate_range(
+        session:Session, start_date:date, end_date:date
+) -> list[User]:
+    """List users by a birthdate range."""
+
+    query = select(User).where(
+        User.deleted == False,
+        User.profile.has(Profile.birthdate >= start_date),
+        User.profile.has(Profile.birthdate <= end_date)
+    )
+    return session.exec(query).all()

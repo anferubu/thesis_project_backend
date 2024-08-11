@@ -1,5 +1,4 @@
 from datetime import date, datetime
-import re
 from typing import Any, Annotated
 
 from pydantic import model_validator
@@ -73,19 +72,6 @@ class CompanyCreate(SQLModel):
     def validate_schema(cls, values:Any) -> Any:
         values = utils.remove_whitespaces(values)
         values = utils.check_telephone(values, "contact_telephone")
-
-        # remove whitespaces at beginning and end of a string.
-        for key, value in values.items():
-            if isinstance(value, str):
-                values[key] = value.strip()
-        # validate telephone
-        telephone = values.get("contact_telephone")
-        telephone = re.sub(r'[^\d]', '', telephone)
-        values["contact_telephone"] = telephone
-        if telephone and not re.match(r'^3\d{9}$', telephone):
-            raise ValueError(
-                "Phone number must be a valid mobile number, e.g., 3001234567."
-            )
         return values
 
 

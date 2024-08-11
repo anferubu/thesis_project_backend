@@ -2,7 +2,8 @@ from fastapi import APIRouter, HTTPException
 
 from api.crud import events as crud
 from api.crud.events import get_event_by_id
-from api.crud.users import get_member_by_id, get_user_by_id
+from api.crud.teams import get_location_by_id, get_team_by_id
+from api.crud.users import get_user_by_id
 from api.crud.utils import parse_filter_param, parse_sort_param
 from api.models.events import Event, Participation, Review, Path
 from api.schemas.events import (
@@ -13,7 +14,7 @@ from api.schemas.events import (
     PathCreate, PathRead, PathUpdate, PathList
 )
 from api.schemas.teams import LocationRead, TeamRead
-from api.schemas.users import MemberRead
+from api.schemas.users import UserRead
 from core.database import DBSession as Session
 
 
@@ -28,7 +29,7 @@ event = APIRouter()
 def list_events(
     session:Session,
     skip:int=0,
-    limit:int=10,
+    limit:int=100,
     sort:str|None=None,
     filter:str|None=None
 ) -> list[Event]:
@@ -52,8 +53,22 @@ def create_event(session:Session, data:EventCreate) -> Event:
     """Create a new event."""
 
     event = crud.get_event_by_name(session, data.name)
+    location = get_location_by_id(session, data.location_id)
+    organizer = get_user_by_id(session, data.organizer_id)
+    team = get_team_by_id(session, data.team_id)
     if event:
         raise HTTPException(409, f"Event {data.name} already exists!")
+    if not location:
+        raise HTTPException(404, f"Location #{data.location_id} not found!")
+    if not organizer:
+        raise HTTPException(404, f"User #{data.organizer_id} not found!")
+    if not team:
+        raise HTTPException(404, f"Team #{data.team_id} not found!")
+    if data.path_id:
+        path = crud.get_path_by_id(session, data.path_id)
+        if not path:
+            raise HTTPException(404, f"Path #{data.path_id} not found!")
+    data.organizer_id = organizer.profile.id
     return crud.create_event(session, data)
 
 
@@ -104,14 +119,14 @@ def get_event_location(session:Session, event_id:int):
 
 
 
-@event.get("/events/{event_id}/organizer", response_model=MemberRead)
+@event.get("/events/{event_id}/organizer", response_model=UserRead)
 def get_event_organizer(session:Session, event_id:int):
     """Get the organizer of an event."""
 
     event = crud.get_event_by_id(session, event_id)
     if not event:
         raise HTTPException(404, f"Event #{event_id} not found!")
-    return event.organizer
+    return event.organizer.user
 
 
 
@@ -151,7 +166,7 @@ participation = APIRouter()
 def create_participation(
     session:Session, event_id:int, user_id:int, data:ParticipationCreate
 ) -> list[Participation]:
-    """Create a new participation for a member in an event."""
+    """Create a new participation for a user in an event."""
 
     event = get_event_by_id(session, event_id)
     user = get_user_by_id(session, user_id)
@@ -198,62 +213,64 @@ def list_event_participations(
 
 
 @participation.get(
-        "/members/{member_id}/participations",
+        "/users/{user_id}/participations",
         response_model=list[ParticipationEventList]
 )
-def list_member_participations(
-    session:Session, member_id:int, attended:bool|None=None
+def list_user_participations(
+    session:Session, user_id:int, attended:bool|None=None
 ) -> list[Participation]:
-    """List participations for a member."""
+    """List participations for a user."""
 
-    member = get_member_by_id(session, member_id)
-    if not member:
-        raise HTTPException(404, f"Member #{member_id} not found!")
+    user = get_user_by_id(session, user_id)
+    if not user:
+        raise HTTPException(404, f"User #{user_id} not found!")
     if attended is not None:
         participations = [
-            participation for participation in member.attended_events
+            participation for participation in user.profile.attended_events
             if participation.attended == attended
         ]
     else:
-        participations = member.attended_events
+        participations = user.profile.attended_events
     return participations
 
 
 
 @participation.get(
-    "/events/{event_id}/members/{member_id}/participations",
+    "/events/{event_id}/users/{user_id}/participations",
     response_model=ParticipationRead
 )
 def get_participation(
-    session:Session, event_id:int, member_id:int
+    session:Session, event_id:int, user_id:int
 ) -> Participation:
-    """Get a participation for a member in an event."""
+    """Get a participation for a user in an event."""
 
-    participation = crud.get_participation(session, event_id, member_id)
+    user = get_user_by_id(session, user_id)
+    participation = crud.get_participation(session, event_id, user.profile.id)
     if not participation:
         raise HTTPException(
-            404, f"Member #{member_id} not participate in event #{event_id}!"
+            404, f"User #{user_id} not participate in event #{event_id}!"
         )
     return participation
 
 
 
 @participation.put(
-    "/events/{event_id}/members/{member_id}/participations",
+    "/events/{event_id}/users/{user_id}/participations",
     response_model=Participation
 )
 def update_participation(
     session:Session,
     event_id:int,
-    member_id:int,
+    user_id:int,
     data:ParticipationUpdate
 ) -> Participation:
-    """Update a participation for a member in an event."""
+    """Update a participation for a user in an event."""
 
-    participation = crud.get_participation(session, member_id, event_id)
+    user = get_user_by_id(session, user_id)
+    participation = crud.get_participation(session, user.profile.id, event_id)
     if not participation:
         raise HTTPException(
-            404, f"Member #{member_id} not participate in event #{event_id}!"
+            404, f"User #{user_id} not participate in event #{event_id}!"
         )
     participation = crud.update_participation(session, participation, data)
     return participation
@@ -261,25 +278,25 @@ def update_participation(
 
 
 @participation.delete(
-    "/events/{event_id}/members/{member_id}/participations", status_code=204
+    "/events/{event_id}/users/{user_id}/participations", status_code=204
 )
-def remove_member_from_event(
-    session:Session, event_id:int, member_id:int, hard:bool=False
+def remove_user_from_event(
+    session:Session, event_id:int, user_id:int, hard:bool=False
 ) -> None:
-    """Remove a member from an event."""
+    """Remove a user from an event."""
 
     event = get_event_by_id(session, event_id)
-    member = get_member_by_id(session, member_id)
+    user = get_user_by_id(session, user_id)
     if not event:
         raise HTTPException(404, f"Event #{event_id} not found!")
-    if not member:
-        raise HTTPException(404, f"Member #{member_id} not found!")
-    participation = crud.get_participation(session, event_id, member_id)
+    if not user:
+        raise HTTPException(404, f"User #{user_id} not found!")
+    participation = crud.get_participation(session, event_id, user.profile.id)
     if participation:
         crud.delete_participation(session, participation, hard)
     else:
         raise HTTPException(
-            404, f"Member #{member_id} not found in event #{event_id}!"
+            404, f"User #{user_id} not found in event #{event_id}!"
         )
 
 
@@ -290,39 +307,41 @@ review = APIRouter()
 
 
 @review.post(
-    "/events/{event_id}/members/{member_id}/reviews",
+    "/events/{event_id}/users/{user_id}/reviews",
     response_model=list[ReviewRead]
 )
 def create_review(
-    session:Session, event_id:int, member_id:int, data:ReviewCreate
+    session:Session, event_id:int, user_id:int, data:ReviewCreate
 ) -> list[Review]:
     """Create a new user review for an event."""
 
     event = get_event_by_id(session, event_id)
-    member = get_member_by_id(session, member_id)
+    user = get_user_by_id(session, user_id)
     if not event:
         raise HTTPException(404, f"Event #{event_id} not found!")
-    if not member:
-        raise HTTPException(404, f"Member #{member_id} not found!")
-    participation = get_participation(session, member_id, event_id)
+    if not user:
+        raise HTTPException(404, f"User #{user_id} not found!")
+    participation = get_participation(session, user.profile.id, event_id)
     if not participation:
         raise HTTPException(
             404,
-            f"Member #{member_id} didn't confirm attendance at event #{event_id}!"
+            f"User #{user_id} didn't confirm attendance at event #{event_id}!"
         )
     if not participation.attended:
         raise HTTPException(
-            404, f"Member #{member_id} didn't attend the event #{event_id}!"
+            404, f"User #{user_id} didn't attend the event #{event_id}!"
         )
-    review = crud.get_review(session, member_id, event_id)
+    review = crud.get_review(session, user.profile.id, event_id)
     if not review:
-        new_review = crud.create_review(session, member_id, event_id, data)
+        new_review = crud.create_review(
+            session, user.profile.id, event_id, data
+        )
         event.reviews.append(new_review)
         return event.reviews
     else:
         raise HTTPException(
             400,
-            f"Member #{member_id} has already made a review of the event #{event_id}!"
+            f"User #{user_id} has already made a review of the event #{event_id}!"
         )
 
 
@@ -351,64 +370,66 @@ def list_event_reviews(
 
 
 @review.get(
-        "/members/{member_id}/reviews",
+        "/users/{user_id}/reviews",
         response_model=list[ReviewEventList]
 )
-def list_member_reviews(
-    session:Session, member_id:int, score:int|None=None
+def list_user_reviews(
+    session:Session, user_id:int, score:int|None=None
 ) -> list[Review]:
-    """List reviews made by a member."""
+    """List reviews made by a user."""
 
-    member = get_member_by_id(session, member_id)
-    if not member:
-        raise HTTPException(404, f"Member #{member_id} not found!")
+    user = get_user_by_id(session, user_id)
+    if not user:
+        raise HTTPException(404, f"User #{user_id} not found!")
     if score is not None:
         reviews = [
-            review for review in member.reviews
+            review for review in user.profile.reviews
             if review.score == score
         ]
     else:
-        reviews = member.reviews
+        reviews = user.profile.reviews
     return reviews
 
 
 
 @review.get(
-    "/events/{event_id}/members/{member_id}/reviews",
+    "/events/{event_id}/users/{user_id}/reviews",
     response_model=ReviewRead
 )
 def get_review(
-    session:Session, event_id:int, member_id:int
+    session:Session, event_id:int, user_id:int
 ) -> Review:
     """get a user review for an event."""
 
-    review = crud.get_review(session, event_id, member_id)
+    user = get_user_by_id(session, user_id)
+    review = crud.get_review(session, event_id, user.profile.id)
     if not review:
         raise HTTPException(
             404,
-            f"Member #{member_id} has not made any reviews of the event #{event_id}!"
+            f"User #{user_id} has not made any reviews of the event #{event_id}!"
         )
     return review
 
 
 
 @review.put(
-    "/events/{event_id}/members/{member_id}/reviews",
+    "/events/{event_id}/users/{user_id}/reviews",
     response_model=Review
 )
 def update_review(
     session:Session,
     event_id:int,
-    member_id:int,
+    user_id:int,
     data:ReviewUpdate
 ) -> Review:
     """Update a user review for an event."""
 
-    review = crud.get_review(session, member_id, event_id)
+    user = get_user_by_id(session, user_id)
+    review = crud.get_review(session, user.profile.id, event_id)
     if not review:
         raise HTTPException(
             404,
-            f"Member #{member_id} has not made any reviews of the event #{event_id}!"
+            f"User #{user_id} has not made any reviews of the event #{event_id}!"
         )
     review = crud.update_review(session, review, data)
     return review
@@ -416,27 +437,27 @@ def update_review(
 
 
 @review.delete(
-    "/events/{event_id}/members/{member_id}/reviews",
+    "/events/{event_id}/users/{user_id}/reviews",
     status_code=204
 )
 def delete_review(
-    session:Session, event_id:int, member_id:int, hard:bool=False
+    session:Session, event_id:int, user_id:int, hard:bool=False
 ) -> None:
     """Delete a user review for a particular event."""
 
     event = get_event_by_id(session, event_id)
-    member = get_member_by_id(session, member_id)
+    user = get_user_by_id(session, user_id)
     if not event:
         raise HTTPException(404, f"Event #{event_id} not found!")
-    if not member:
-        raise HTTPException(404, f"Member #{member_id} not found!")
-    review = crud.get_review(session, event_id, member_id)
+    if not user:
+        raise HTTPException(404, f"User #{user_id} not found!")
+    review = crud.get_review(session, event_id, user.profile.id)
     if review:
         crud.delete_review(session, review, hard)
     else:
         raise HTTPException(
             404,
-            f"Member #{member_id} has not made any reviews of the event #{event_id}!"
+            f"User #{user_id} has not made any reviews of the event #{event_id}!"
         )
 
 

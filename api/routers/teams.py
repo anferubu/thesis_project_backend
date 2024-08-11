@@ -1,28 +1,7 @@
-"""
-GET    /teams?skip=&limit=&location_id=  : list teams
-POST   /teams                            : create team
-GET    /teams/{team_id}                  : get team
-PUT    /teams/{team_id}                  : update team
-DELETE /teams/{team_id}?hard=            : delete team
-GET    /teams/{team_id}/location    : get team's location
-GET    /teams/{team_id}/members     : list team's members
-GET    /teams/{team_id}/agreements  : list team's agreements
-GET    /teams/{team_id}/events      : list team's events
-
-GET    /locations?skip=&limit=&loc_type=&department_id=&is_capital=  : list locations
-POST   /locations                                                    : create location
-GET    /locations/{location_id}                                      : get location
-PUT     /locations/{location_id}                                     : update location
-DELETE  /locations/{location_id}?hard=                               : delete location
-GET     /locations/{location_id}/department  : get location's department
-GET     /locations/{location_id}/cities      : list location's cities
-GET     /locations/{location_id}/team        : get location's team
-GET     /locations/{location_id}/events      : list location's events
-"""
-
 from fastapi import APIRouter, HTTPException
 
 from api.crud import teams as crud
+from api.crud.utils import parse_filter_param, parse_sort_param
 from api.models.teams import Team, Location
 from api.models.utils.enums import LocationType
 from api.schemas.agreements import AgreementList
@@ -30,39 +9,55 @@ from api.schemas.events import EventList
 from api.schemas.teams import (
     TeamCreate, TeamRead, TeamUpdate, TeamList,
     LocationCreate, LocationRead, LocationUpdate, LocationList)
-from api.schemas.users import MemberList
+from api.schemas.users import UserList
 from core.database import DBSession as Session
 
 
 
-router = APIRouter()
+team = APIRouter()
 
 
 
 # Team endpoints
 
-@router.get("/teams", response_model=list[TeamList])
+@team.get("/teams", response_model=list[TeamList])
 def list_teams(
-    session:Session, skip:int=0, limit:int=10, location_id:int|None=None
+    session:Session,
+    skip:int=0,
+    limit:int=100,
+    sort:str|None=None,
+    filter:str|None=None
 ) -> list[Team]:
     """List teams."""
 
-    return crud.list_teams(session, skip, limit, location_id)
+    sort_dict = parse_sort_param(sort) if sort else None
+    filter_dict = parse_filter_param(filter) if filter else None
+
+    return crud.list_teams(
+        session=session,
+        skip=skip,
+        limit=limit,
+        sort=sort_dict,
+        filter=filter_dict
+    )
 
 
 
-@router.post("/teams", response_model=TeamRead, status_code=201)
+@team.post("/teams", response_model=TeamRead, status_code=201)
 def create_team(session:Session, data:TeamCreate) -> Team:
     """Create a new team."""
 
     team = crud.get_team_by_name(session, data.name)
+    location = crud.get_location_by_id(session, data.location_id)
     if team:
         raise HTTPException(409, f"Team {data.name} already exists!")
+    if not location:
+        raise HTTPException(404, f"Location #{data.location_id} not found!")
     return crud.create_team(session, data)
 
 
 
-@router.get("/teams/{team_id}", response_model=TeamRead)
+@team.get("/teams/{team_id}", response_model=TeamRead)
 def get_team(session:Session, team_id:int) -> Team:
     """Get a team by its ID."""
 
@@ -73,7 +68,7 @@ def get_team(session:Session, team_id:int) -> Team:
 
 
 
-@router.put("/teams/{team_id}", response_model=TeamRead)
+@team.put("/teams/{team_id}", response_model=TeamRead)
 def update_team(session:Session, team_id:int, data:TeamUpdate) -> Team:
     """Update a team."""
 
@@ -84,7 +79,7 @@ def update_team(session:Session, team_id:int, data:TeamUpdate) -> Team:
 
 
 
-@router.delete("/teams/{team_id}", status_code=204)
+@team.delete("/teams/{team_id}", status_code=204)
 def delete_team(session:Session, team_id:int, hard:bool=False) -> None:
     """Delete a team by its ID."""
 
@@ -97,7 +92,7 @@ def delete_team(session:Session, team_id:int, hard:bool=False) -> None:
 
 # Team relationship endpoints
 
-@router.get("/teams/{team_id}/location", response_model=LocationRead)
+@team.get("/teams/{team_id}/location", response_model=LocationRead)
 def get_team_location(session:Session, team_id:int):
     """Get the location of a team."""
 
@@ -108,18 +103,19 @@ def get_team_location(session:Session, team_id:int):
 
 
 
-@router.get("/teams/{team_id}/members", response_model=list[MemberList])
-def list_team_members(session:Session, team_id:int):
-    """Get the members of a team."""
+@team.get("/teams/{team_id}/users", response_model=list[UserList])
+def list_team_users(session:Session, team_id:int):
+    """Get the users of a team."""
 
     team = crud.get_team_by_id(session, team_id)
     if not team:
         raise HTTPException(404, f"Team #{team_id} not found!")
-    return team.members
+    users = [profile.user for profile in team.members]
+    return users
 
 
 
-@router.get("/teams/{team_id}/events", response_model=list[EventList])
+@team.get("/teams/{team_id}/events", response_model=list[EventList])
 def list_team_events(session:Session, team_id:int):
     """Get the events of a team."""
 
@@ -130,7 +126,7 @@ def list_team_events(session:Session, team_id:int):
 
 
 
-@router.get("/teams/{team_id}/agreements", response_model=list[AgreementList])
+@team.get("/teams/{team_id}/agreements", response_model=list[AgreementList])
 def list_team_agreements(session:Session, team_id:int):
     """Get the agreements of a team."""
 
@@ -143,35 +139,51 @@ def list_team_agreements(session:Session, team_id:int):
 
 # Location endpoints
 
-@router.get("/locations", response_model=list[LocationList])
+location = APIRouter()
+
+
+@location.get("/locations", response_model=list[LocationList])
 def list_locations(
     session:Session,
     skip:int=0,
-    limit:int=10,
-    loc_type:LocationType|None=None,
-    department_id:int|None=None,
-    is_capital:bool|None=None
+    limit:int=100,
+    sort:str|None=None,
+    filter:str|None=None
 ) -> list[Location]:
     """List locations."""
 
+    sort_dict = parse_sort_param(sort) if sort else None
+    filter_dict = parse_filter_param(filter) if filter else None
+
     return crud.list_locations(
-        session, skip, limit, loc_type, department_id, is_capital
+        session=session,
+        skip=skip,
+        limit=limit,
+        sort=sort_dict,
+        filter=filter_dict
     )
 
 
 
-@router.post("/locations", response_model=LocationRead, status_code=201)
+@location.post("/locations", response_model=LocationRead, status_code=201)
 def create_location(session:Session, data:LocationCreate) -> Location:
     """Create a new location."""
 
     location = crud.get_location_by_name(session, data.name)
+    department = crud.get_location_by_id(session, data.department_id)
     if location:
         raise HTTPException(409, f"Location {data.name} already exists!")
+    if not department:
+        raise HTTPException(404, f"Department #{data.department_id} not found!")
+    if department.type != LocationType.DEPARTMENT:
+        raise HTTPException(
+            409, f"Location #{data.department_id} is not a department!"
+        )
     return crud.create_location(session, data)
 
 
 
-@router.get("/locations/{location_id}", response_model=LocationRead,)
+@location.get("/locations/{location_id}", response_model=LocationRead,)
 def get_location(session:Session, location_id:int) -> Location:
     """Get a location by its ID."""
 
@@ -182,7 +194,7 @@ def get_location(session:Session, location_id:int) -> Location:
 
 
 
-@router.put("/locations/{location_id}",response_model=LocationRead,)
+@location.put("/locations/{location_id}",response_model=LocationRead,)
 def update_location(
     session:Session, location_id:int, data:LocationUpdate
 ) -> Location:
@@ -195,7 +207,7 @@ def update_location(
 
 
 
-@router.delete("/locations/{location_id}", status_code=204)
+@location.delete("/locations/{location_id}", status_code=204)
 def delete_location(
     session:Session, location_id:int, hard:bool|None=None
 ) -> None:
@@ -210,7 +222,9 @@ def delete_location(
 
 # Location relationship endpoints
 
-@router.get("/locations/{location_id}/department", response_model=LocationRead)
+@location.get(
+    "/locations/{location_id}/department", response_model=LocationRead
+)
 def get_location_department(session:Session, location_id:int):
     """Get the department of a location."""
 
@@ -225,7 +239,7 @@ def get_location_department(session:Session, location_id:int):
 
 
 
-@router.get(
+@location.get(
     "/locations/{location_id}/cities", response_model=list[LocationList]
 )
 def list_location_cities(session:Session, location_id:int):
@@ -242,7 +256,7 @@ def list_location_cities(session:Session, location_id:int):
 
 
 
-@router.get("/locations/{location_id}/team", response_model=TeamRead)
+@location.get("/locations/{location_id}/team", response_model=TeamRead)
 def get_location_team(session:Session, location_id:int):
     """Get the team of a location."""
 
@@ -253,7 +267,9 @@ def get_location_team(session:Session, location_id:int):
 
 
 
-@router.get("/locations/{location_id}/events", response_model=list[EventList])
+@location.get(
+    "/locations/{location_id}/events", response_model=list[EventList]
+)
 def list_location_events(session:Session, location_id:int):
     """Get the events of a location."""
 

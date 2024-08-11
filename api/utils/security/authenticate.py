@@ -25,7 +25,7 @@ def authenticate(session:Session, email:str, password:str) -> User|None:
 
     Returns:
       - User|None: The authenticated user object if credentials are valid,
-          otherwise None.
+        otherwise None.
     """
 
     user = get_user_by_email(session=session, email=email)

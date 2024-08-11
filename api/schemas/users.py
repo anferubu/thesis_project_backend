@@ -6,6 +6,7 @@ from pydantic import EmailStr, FilePath, field_validator, model_validator
 from sqlmodel import Field, SQLModel
 
 from api.models.utils.enums import UserStatus, DocumentType, GenderType, RHType
+from api.schemas import utils
 
 
 
@@ -25,20 +26,8 @@ class ProfileBase(SQLModel):
 
     @model_validator(mode="before")
     def validate_schema(cls, values:Any) -> Any:
-        """Validates the creation/update schema data."""
-
-        # remove whitespaces at beginning and end of a string.
-        for key, value in values.items():
-            if isinstance(value, str):
-                values[key] = value.strip()
-        # validate telephone
-        telephone = values.get("telephone")
-        telephone = re.sub(r'[^\d]', '', telephone)
-        values["telephone"] = telephone
-        if telephone and not re.match(r'^3\d{9}$', telephone):
-            raise ValueError(
-                "phone number must be a valid phone number, e.g., 3001234567."
-            )
+        values = utils.remove_whitespaces(values)
+        values = utils.check_telephone(values, "telephone")
         return values
 
 
@@ -105,27 +94,14 @@ class UserCreate(SQLModel):
         """Validates the creation/update schema data."""
 
         # validate username
-        username = values.get("username")
-        if not re.match(r"^[A-Za-z0-9-_]+$", username):
+        username = values.get("profile", {}).get("username")
+        if username and not re.match(r"^[A-Za-z0-9-_]+$", username):
             raise ValueError(
                 "Username can only contain alphanumeric characters, hyphens" \
                 "(-), and underscores (_)."
             )
         # validate password
-        password = values.get("password")
-        special_characters = "!@#$%^&*()-_=+[]{}|;:'\"<>,.?/~`"
-        if password.startswith(" ") or password.endswith(" "):
-            raise ValueError("Password cannot start or end with spaces.")
-        if len(password) < 8:
-            raise ValueError("Password must be at least 8 characters.")
-        if not any(char.islower() for char in password):
-            raise ValueError("Password must have a lowercase character.")
-        if not any(char.isupper() for char in password):
-            raise ValueError("Password must have an uppercase character.")
-        if not any(char.isdigit() for char in password):
-            raise ValueError("Password must have a numeric character.")
-        if not any(char in special_characters for char in password):
-            raise ValueError("Password must have a special character.")
+        values = utils.check_password(values, "password")
         return values
 
 
@@ -161,22 +137,7 @@ class PasswordChange(SQLModel):
 
     @model_validator(mode="before")
     def validate_schema(cls, values:Any) -> Any:
-        """Validates the creation schema data."""
-
-        password = values.get("new_password")
-        special_characters = "!@#$%^&*()-_=+[]{}|;:'\"<>,.?/~`"
-        if password.startswith(" ") or password.endswith(" "):
-            raise ValueError("Password cannot start or end with spaces.")
-        if len(password) < 8:
-            raise ValueError("Password must be at least 8 characters.")
-        if not any(char.islower() for char in password):
-            raise ValueError("Password must have a lowercase character.")
-        if not any(char.isupper() for char in password):
-            raise ValueError("Password must have an uppercase character.")
-        if not any(char.isdigit() for char in password):
-            raise ValueError("Password must have a numeric character.")
-        if not any(char in special_characters for char in password):
-            raise ValueError("Password must have a special character.")
+        values = utils.check_password(values, "new_password")
         return values
 
 
@@ -193,12 +154,7 @@ class RoleCreate(SQLModel):
 
     @model_validator(mode="before")
     def validate_schema(cls, values:Any) -> Any:
-        """Validates the creation/update schema data."""
-
-        # remove whitespaces at beginning and end of a string.
-        for key, value in values.items():
-            if isinstance(value, str):
-                values[key] = value.strip()
+        values = utils.remove_whitespaces(values)
         return values
 
 
@@ -227,12 +183,7 @@ class MotorcycleBase(SQLModel):
 
     @model_validator(mode="before")
     def validate_schema(cls, values:Any) -> Any:
-        """Validates the creation/update schema data."""
-
-        # remove whitespaces at beginning and end of a string.
-        for key, value in values.items():
-            if isinstance(value, str):
-                values[key] = value.strip()
+        values = utils.remove_whitespaces(values)
         return values
 
 
@@ -284,12 +235,7 @@ class BrandCreate(SQLModel):
 
     @model_validator(mode="before")
     def validate_schema(cls, values:Any) -> Any:
-        """Validates the creation/update schema data."""
-
-        # remove whitespaces at beginning and end of a string.
-        for key, value in values.items():
-            if isinstance(value, str):
-                values[key] = value.strip()
+        values = utils.remove_whitespaces(values)
         return values
 
 

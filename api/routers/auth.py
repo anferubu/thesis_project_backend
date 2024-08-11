@@ -13,12 +13,12 @@ from core.email import send_email
 
 
 
-router = APIRouter()
+auth = APIRouter()
 
 
 
-@router.post("/token", response_model=Token)
-async def login_for_access_token(
+@auth.post("/token", response_model=Token)
+def login_for_access_token(
     session:DBSession, form_data:LoginFormData
 ) -> Token:
     """Authenticate the user and provide an access token and a refresh token."""
@@ -37,8 +37,8 @@ async def login_for_access_token(
 
 
 
-@router.post("/refresh-token", response_model=Token)
-async def refresh_access_token(refresh_token:str) -> Token:
+@auth.post("/refresh-token", response_model=Token)
+def refresh_access_token(refresh_token:str) -> Token:
     """Refreshes the access token using the provided refresh token. """
 
     payload = jwt.decode_token(refresh_token)
@@ -52,7 +52,7 @@ async def refresh_access_token(refresh_token:str) -> Token:
 
 
 
-@router.get("/users/me", response_model=UserRead)
+@auth.get("/users/me", response_model=UserRead)
 def read_user_me(current_user:CurrentUser) -> User:
     """Retrieves the current authenticated user's information."""
 
@@ -60,22 +60,19 @@ def read_user_me(current_user:CurrentUser) -> User:
 
 
 
-@router.post("/register", response_model=UserRead)
-async def register_user(
+@auth.post("/register", response_model=UserRead)
+def register_user(
     session:DBSession,
-    user_in:UserCreate,
+    data:UserCreate,
     background_tasks:BackgroundTasks,
     request:Request
 ) -> User:
     """Registers a new user and sends a confirmation email."""
 
-    user = crud.get_user_by_email(session=session, email=user_in.email)
+    user = crud.get_user_by_email(session, data.email)
     if user:
-        raise HTTPException(
-            409, f"User with email {user.email} is already registered!"
-        )
-    user_create = UserCreate.model_validate(user_in)
-    new_user = crud.create_user(session=session, user_create=user_create)
+        raise HTTPException(409, f"User {user.email} is already registered!")
+    new_user = crud.create_user(session, data)
     confirmation_token = jwt.create_confirmation_token(new_user.email)
     domain = f"{request.url.scheme}://{request.headers['host']}"
     confirmation_link = f"{domain}/confirm-email/{confirmation_token}"
@@ -93,8 +90,8 @@ async def register_user(
 
 
 
-@router.get("/confirm-email/{token}")
-async def confirm_email(session:DBSession, token:str) -> dict:
+@auth.get("/confirm-email/{token}")
+def confirm_email(session:DBSession, token:str) -> dict:
     """Confirms the user's email address using the provided token. This
     endpointdecodes the email confirmation token to activate the user's
     account."""
@@ -118,8 +115,8 @@ async def confirm_email(session:DBSession, token:str) -> dict:
 
 
 
-@router.post("/change-password", response_model=UserRead)
-async def change_password(
+@auth.post("/change-password", response_model=UserRead)
+def change_password(
     session:DBSession, current_user:CurrentUser, password_change:PasswordChange
 ) -> User:
     """Changes the user's password. This endpoint allows the current
@@ -138,8 +135,8 @@ async def change_password(
 
 
 
-@router.post("/request-password-reset/")
-async def request_password_reset(
+@auth.post("/request-password-reset/")
+def request_password_reset(
     session:DBSession,
     request_password_reset:RequestPasswordReset,
     background_tasks:BackgroundTasks,
@@ -173,8 +170,8 @@ async def request_password_reset(
 # Arreglar porque el password se está enviando como query param
 # GET formulario para establecer contraseña
 # POST restablecimiento de contraseña
-@router.post("/reset-password/{token}")
-async def reset_password(
+@auth.post("/reset-password/{token}")
+def reset_password(
     session:DBSession, token:str, new_password:str
 ) -> dict:
     """Resets the user's password using the provided token. This endpoint

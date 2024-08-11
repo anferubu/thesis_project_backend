@@ -1,33 +1,49 @@
+from datetime import date
+
 from fastapi import APIRouter, HTTPException
 
 from api.crud import users as crud
-from api.models.users import Brand, Member, Motorcycle, Role, User
-from api.models.utils.enums import UserStatus, GenderType, DocumentType, RHType
+from api.crud.utils import parse_filter_param, parse_sort_param
+from api.models.users import Brand, Motorcycle, Role, User
 from api.schemas.users import (
     BrandCreate, BrandList, BrandRead, BrandUpdate,
-    MemberCreate, MemberList, MemberRead, MemberUpdate,
     MotorcycleCreate, MotorcycleList, MotorcycleRead, MotorcycleUpdate,
     RoleCreate, RoleList, RoleRead, RoleUpdate,
-    UserCreate, UserList, UserRead, UserUpdate)
+    UserList, UserRead, UserUpdate)
 from core.database import DBSession as Session
 
 
 
-router = APIRouter()
+role = APIRouter()
 
 
 
 # Role endpoints
 
-@router.get("/roles", response_model=list[RoleList])
-def list_roles(session:Session, skip:int=0, limit:int=10) -> list[Role]:
+@role.get("/roles", response_model=list[RoleList])
+def list_roles(
+    session:Session,
+    skip:int=0,
+    limit:int=100,
+    sort:str|None=None,
+    filter:str|None=None
+) -> list[Role]:
     """List roles."""
 
-    return crud.list_roles(session, skip, limit)
+    sort_dict = parse_sort_param(sort) if sort else None
+    filter_dict = parse_filter_param(filter) if filter else None
+
+    return crud.list_roles(
+        session=session,
+        skip=skip,
+        limit=limit,
+        sort=sort_dict,
+        filter=filter_dict
+    )
 
 
 
-@router.post("/roles", response_model=RoleRead, status_code=201)
+@role.post("/roles", response_model=RoleRead, status_code=201)
 def create_role(session:Session, data:RoleCreate) -> Role:
     """Create a new role."""
 
@@ -38,7 +54,7 @@ def create_role(session:Session, data:RoleCreate) -> Role:
 
 
 
-@router.get("/roles/{role_id}", response_model=RoleRead)
+@role.get("/roles/{role_id}", response_model=RoleRead)
 def get_role(session:Session, role_id:int) -> Role:
     """Get a role by its ID."""
 
@@ -49,7 +65,7 @@ def get_role(session:Session, role_id:int) -> Role:
 
 
 
-@router.put("/roles/{role_id}", response_model=RoleRead)
+@role.put("/roles/{role_id}", response_model=RoleRead)
 def update_role(session:Session, role_id:int, data:RoleUpdate) -> Role:
     """Update a role."""
 
@@ -60,7 +76,7 @@ def update_role(session:Session, role_id:int, data:RoleUpdate) -> Role:
 
 
 
-@router.delete("/roles/{role_id}", status_code=204)
+@role.delete("/roles/{role_id}", status_code=204)
 def delete_role(
     session:Session, role_id:int, hard:bool=False
 ) -> None:
@@ -75,7 +91,7 @@ def delete_role(
 
 # Role relationship endpoints
 
-@router.get("/roles/{role_id}/users", response_model=list[UserList])
+@role.get("/roles/{role_id}/users", response_model=list[UserList])
 def list_role_users(session:Session, role_id:int):
     """Get the users with a role."""
 
@@ -88,36 +104,57 @@ def list_role_users(session:Session, role_id:int):
 
 # Motorcycle endpoints
 
-@router.get("/motorcycles", response_model=list[MotorcycleList])
+motorcycle = APIRouter()
+
+
+@motorcycle.get("/motorcycles", response_model=list[MotorcycleList])
 def list_motorcycles(
     session:Session,
     skip:int=0,
-    limit:int=10,
-    brand_id:int|None=None,
-    member_id:int|None=None
+    limit:int=100,
+    sort:str|None=None,
+    filter:str|None=None
 ) -> list[Motorcycle]:
     """List motorcycles."""
 
-    return crud.list_motorcycles(session, skip, limit, brand_id, member_id)
+    sort_dict = parse_sort_param(sort) if sort else None
+    filter_dict = parse_filter_param(filter) if filter else None
+
+    return crud.list_motorcycles(
+        session=session,
+        skip=skip,
+        limit=limit,
+        sort=sort_dict,
+        filter=filter_dict
+    )
 
 
 
-@router.post("/motorcycles", response_model=MotorcycleRead, status_code=201)
+@motorcycle.post(
+    "/motorcycles", response_model=MotorcycleRead, status_code=201
+)
 def create_motorcycle(session:Session, data:MotorcycleCreate) -> Motorcycle:
     """Create a new motorcycle."""
 
     motorcycle = crud.get_motorcycle_by_license_plate(
         session, data.license_plate
     )
+    brand = crud.get_brand_by_id(session, data.brand_id)
+    owner = crud.get_user_by_id(session, data.owner_id)
     if motorcycle:
         raise HTTPException(
             409, f"Motorcycle {data.license_plate} already exists!"
         )
+    if not brand:
+        raise HTTPException(404, f"Brand #{data.brand_id} not found!")
+    if not owner:
+        raise HTTPException(404, f"User #{data.owner_id} not found!")
+    data.owner_id = owner.profile.id
     return crud.create_motorcycle(session, data)
 
 
 
-@router.get("/motorcycles/{motorcycle_id}", response_model=MotorcycleRead)
+@motorcycle.get("/motorcycles/{motorcycle_id}", response_model=MotorcycleRead)
 def get_motorcycle(session:Session, motorcycle_id:int) -> Motorcycle:
     """Get a motorcycle by its ID."""
 
@@ -128,7 +165,7 @@ def get_motorcycle(session:Session, motorcycle_id:int) -> Motorcycle:
 
 
 
-@router.put("/motorcycles/{motorcycle_id}", response_model=MotorcycleRead)
+@motorcycle.put("/motorcycles/{motorcycle_id}", response_model=MotorcycleRead)
 def update_motorcycle(
     session:Session, motorcycle_id:int, data:MotorcycleUpdate
 ) -> Motorcycle:
@@ -141,7 +178,7 @@ def update_motorcycle(
 
 
 
-@router.delete("/motorcycles/{motorcycle_id}", status_code=204)
+@motorcycle.delete("/motorcycles/{motorcycle_id}", status_code=204)
 def delete_motorcycle(
     session:Session, motorcycle_id:int, hard:bool=False
 ) -> None:
@@ -156,8 +193,8 @@ def delete_motorcycle(
 
 # Motorcycle relationship endpoints
 
-@router.get("/motorcycles/{motorcycle_id}/brand", response_model=BrandRead)
-def list_motorcycle_brand(session:Session, motorcycle_id:int):
+@motorcycle.get("/motorcycles/{motorcycle_id}/brand", response_model=BrandRead)
+def get_motorcycle_brand(session:Session, motorcycle_id:int):
     """Get the brand of a motorcycle."""
 
     motorcycle = crud.get_motorcycle_by_id(session, motorcycle_id)
@@ -167,28 +204,46 @@ def list_motorcycle_brand(session:Session, motorcycle_id:int):
 
 
 
-@router.get("/motorcycles/{motorcycle_id}/owner", response_model=MemberRead)
-def list_motorcycle_owner(session:Session, motorcycle_id:int):
+@motorcycle.get("/motorcycles/{motorcycle_id}/owner", response_model=UserRead)
+def get_motorcycle_owner(session:Session, motorcycle_id:int):
     """Get the owner of a motorcycle."""
 
     motorcycle = crud.get_motorcycle_by_id(session, motorcycle_id)
     if not motorcycle:
         raise HTTPException(404, f"Motorcycle #{motorcycle_id} not found!")
-    return motorcycle.member
+    return motorcycle.owner.user
 
 
 
 # Brand endpoints
 
-@router.get("/brands", response_model=list[BrandList])
-def list_brands(session:Session, skip:int=0, limit:int=10) -> list[Brand]:
+brand = APIRouter()
+
+
+@brand.get("/brands", response_model=list[BrandList])
+def list_brands(
+    session:Session,
+    skip:int=0,
+    limit:int=100,
+    sort:str|None=None,
+    filter:str|None=None
+) -> list[Brand]:
     """List brands."""
 
-    return crud.list_brands(session, skip, limit)
+    sort_dict = parse_sort_param(sort) if sort else None
+    filter_dict = parse_filter_param(filter) if filter else None
+
+    return crud.list_brands(
+        session=session,
+        skip=skip,
+        limit=limit,
+        sort=sort_dict,
+        filter=filter_dict
+    )
 
 
 
-@router.post("/brands", response_model=BrandRead, status_code=201)
+@brand.post("/brands", response_model=BrandRead, status_code=201)
 def create_brand(session:Session, data:BrandCreate) -> Brand:
     """Create a new brand."""
 
@@ -199,7 +254,7 @@ def create_brand(session:Session, data:BrandCreate) -> Brand:
 
 
 
-@router.get("/brands/{brand_id}", response_model=BrandRead)
+@brand.get("/brands/{brand_id}", response_model=BrandRead)
 def get_brand(session:Session, brand_id:int) -> Brand:
     """Get a brand by its ID."""
 
@@ -210,7 +265,7 @@ def get_brand(session:Session, brand_id:int) -> Brand:
 
 
 
-@router.put("/brands/{brand_id}", response_model=BrandRead)
+@brand.put("/brands/{brand_id}", response_model=BrandRead)
 def update_brand(session:Session, brand_id:int, data:BrandUpdate) -> Brand:
     """Update a brand."""
 
@@ -221,7 +276,7 @@ def update_brand(session:Session, brand_id:int, data:BrandUpdate) -> Brand:
 
 
 
-@router.delete("/brands/{brand_id}", status_code=204)
+@brand.delete("/brands/{brand_id}", status_code=204)
 def delete_brand(session:Session, brand_id:int, hard:bool=False) -> None:
     """Delete a brand by its ID."""
 
@@ -234,7 +289,7 @@ def delete_brand(session:Session, brand_id:int, hard:bool=False) -> None:
 
 # Brand relationship endpoints
 
-@router.get(
+@brand.get(
     "/brands/{brand_id}/motorcycles", response_model=list[MotorcycleList]
 )
 def list_brand_motorcycles(session:Session, brand_id:int):
@@ -248,3 +303,119 @@ def list_brand_motorcycles(session:Session, brand_id:int):
 
 
 # User endpoints
+
+user = APIRouter()
+
+
+@user.get("/users", response_model=list[UserList])
+def list_users(
+    session:Session,
+    skip:int=0,
+    limit:int=100,
+    sort:str|None=None,
+    filter:str|None=None
+) -> list[User]:
+    """List users."""
+
+    sort_dict = parse_sort_param(sort) if sort else None
+    filter_dict = parse_filter_param(filter) if filter else None
+
+    return crud.list_users(
+        session=session,
+        skip=skip,
+        limit=limit,
+        sort=sort_dict,
+        filter=filter_dict
+    )
+
+
+
+@user.get("/users/{user_id}", response_model=UserRead)
+def get_user(session:Session, user_id:int) -> User:
+    """Get a user by its ID."""
+
+    user = crud.get_user_by_id(session, user_id)
+    if not user:
+        raise HTTPException(404, f"User #{user_id} not found!")
+    return user
+
+
+
+@user.put("/users/{user_id}", response_model=UserRead)
+def update_user(
+    session:Session, user_id:int, data:UserUpdate
+) -> User:
+    """Update a user."""
+
+    user = crud.update_user(session, user_id, data)
+    if not user:
+        raise HTTPException(404, f"User #{user_id} not found!")
+    return user
+
+
+
+@user.delete("/users/{user_id}", status_code=204)
+def delete_user(
+    session:Session, user_id:int, hard:bool=False
+) -> None:
+    """Delete a user by its ID."""
+
+    user = crud.get_user_by_id(session, user_id)
+    if not user:
+        raise HTTPException(404, f"User #{user_id} not found!")
+    crud.delete_user(session, user_id, hard)
+
+
+
+# Membershipt card endpoints
+
+membership = APIRouter()
+
+
+@membership.get("/users/{user_id}/membership-card")
+def get_membership_card(session:Session, user_id:int):
+    """Get the membership card of a user."""
+
+    user = crud.get_user_by_id(session, user_id)
+    if not user:
+        raise HTTPException(404, f"User #{user_id} not found!")
+    return {
+        "message": "endpoint not implemented!"
+    }
+
+
+
+# Birthdates endpoints
+
+birthdate = APIRouter()
+
+
+@birthdate.get("/users/birthdates/today", response_model=list[UserList])
+def list_birthdays_today(session:Session) -> list[User]:
+    """List users whose birthday is today."""
+
+    birthdays_today = crud.list_users_birthday_is_today(session)
+    return birthdays_today
+
+
+
+@birthdate.get("/users/birthdates", response_model=list[UserList])
+def list_birthdays_by_date(
+    session:Session,
+    date:date|None=None,
+    start_date:date|None=None,
+    end_date:date|None=None,
+) -> list[User]:
+    """List users whose birthday is on a specific date or within a range."""
+
+    if date:
+        users = crud.list_users_by_birthdate(session, date)
+    elif start_date and end_date:
+        users = crud.list_users_by_birthdate_range(
+            session, start_date, end_date
+        )
+    else:
+        raise HTTPException(
+            400, "You must provide either 'date' or both 'start_date' and 'end_date' parameters."
+        )
+    return users

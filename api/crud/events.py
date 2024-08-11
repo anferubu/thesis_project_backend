@@ -41,11 +41,11 @@ def get_event_by_name(session:Session, name:str) -> Event|None:
 
 
 def list_events(
-        session:Session,
-        skip:int|None=None,
-        limit:int|None=None,
-        sort: dict[str, str]|None = None,
-        filter: dict[str, any]|None = None
+    session:Session,
+    skip:int|None=None,
+    limit:int|None=None,
+    sort: dict[str, str]|None = None,
+    filter: dict[str, any]|None = None
 ) -> list[Event]:
     """List events."""
 
@@ -95,12 +95,12 @@ def delete_event(session:Session, event_id:int, hard:bool=False) -> None:
 # Participation model CRUD
 
 def create_participation(
-        session:Session, member_id:int, event_id:int, data:ParticipationCreate
+        session:Session, profile_id:int, event_id:int, data:ParticipationCreate
 ) -> Participation:
     """Create a new participation."""
 
     participation = Participation(
-        member_id=member_id, event_id=event_id, attended=data.attended
+        member_id=profile_id, event_id=event_id, attended=data.attended
     )
     session.add(participation)
     session.commit()
@@ -110,12 +110,12 @@ def create_participation(
 
 
 def get_participation(
-        session:Session, member_id:int, event_id:int
+        session:Session, profile_id:int, event_id:int
 ) -> Participation|None:
     """Get a participation."""
 
     query = select(Participation).where(
-        Participation.member_id == member_id,
+        Participation.member_id == profile_id,
         Participation.event_id == event_id
     )
     return session.exec(query).first()
@@ -153,12 +153,12 @@ def delete_participation(
 # Review model CRUD
 
 def create_review(
-        session:Session, member_id:int, event_id:int, data:ReviewCreate
+        session:Session, profile_id:int, event_id:int, data:ReviewCreate
 ) -> Review:
     """Create a new review."""
 
     review = Review(
-        member_id=member_id,
+        author_id=profile_id,
         event_id=event_id,
         attended=data.comment,
         score=data.score
@@ -171,12 +171,12 @@ def create_review(
 
 
 def get_review(
-        session:Session, member_id:int, event_id:int
+        session:Session, profile_id:int, event_id:int
 ) -> Review|None:
     """Get a review."""
 
     query = select(Review).where(
-        Review.member_id == member_id,
+        Review.author_id == profile_id,
         Review.event_id == event_id
     )
     return session.exec(query).first()

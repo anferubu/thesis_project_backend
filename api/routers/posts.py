@@ -1,33 +1,49 @@
 from fastapi import APIRouter, HTTPException
 
 from api.crud import posts as crud
+from api.crud.users import get_user_by_id
+from api.crud.utils import parse_filter_param, parse_sort_param
 from api.models.posts import Post, Tag, Comment, CommentReaction
-from api.models.utils.enums import PostStatus, ReactionType
 from api.schemas.posts import (
     PostCreate, PostRead, PostUpdate, PostList, TagCreate, TagRead, TagUpdate,
     TagList, CommentCreate, CommentRead, CommentUpdate, CommentList,
     CommentReactionCreate, CommentReactionRead, CommentReactionUpdate,
     CommentReactionList)
-from api.schemas.users import MemberRead
+from api.schemas.users import UserRead
 from core.database import DBSession as Session
 
 
 
-router = APIRouter()
+tag = APIRouter()
 
 
 
 # Tag endpoints
 
-@router.get("/tags", response_model=list[TagList])
-def list_tags(session:Session, skip:int=0, limit:int=10) -> list[Tag]:
+@tag.get("/tags", response_model=list[TagList])
+def list_tags(
+    session:Session,
+    skip:int=0,
+    limit:int=100,
+    sort:str|None=None,
+    filter:str|None=None
+) -> list[Tag]:
     """List tags."""
 
-    return crud.list_tags(session, skip, limit)
+    sort_dict = parse_sort_param(sort) if sort else None
+    filter_dict = parse_filter_param(filter) if filter else None
+
+    return crud.list_tags(
+        session=session,
+        skip=skip,
+        limit=limit,
+        sort=sort_dict,
+        filter=filter_dict
+    )
 
 
 
-@router.post("/tags", response_model=TagRead, status_code=201)
+@tag.post("/tags", response_model=TagRead, status_code=201)
 def create_tag(session:Session, data:TagCreate) -> Tag:
     """Create a new tag."""
 
@@ -38,7 +54,7 @@ def create_tag(session:Session, data:TagCreate) -> Tag:
 
 
 
-@router.get("/tags/{tag_id}", response_model=TagRead)
+@tag.get("/tags/{tag_id}", response_model=TagRead)
 def get_tag(session:Session, tag_id:int) -> Tag:
     """Get a tag by its ID."""
 
@@ -49,7 +65,7 @@ def get_tag(session:Session, tag_id:int) -> Tag:
 
 
 
-@router.put("/tags/{tag_id}", response_model=TagRead)
+@tag.put("/tags/{tag_id}", response_model=TagRead)
 def update_tag(
     session:Session, tag_id:int, data:TagUpdate
 ) -> Tag:
@@ -62,7 +78,7 @@ def update_tag(
 
 
 
-@router.delete("/tags/{tag_id}", status_code=204)
+@tag.delete("/tags/{tag_id}", status_code=204)
 def delete_tag(
     session:Session, tag_id:int, hard:bool=False
 ) -> None:
@@ -77,7 +93,7 @@ def delete_tag(
 
 # Tag relationship endpoints
 
-@router.get("/tags/{tag_id}/posts", response_model=list[PostList])
+@tag.get("/tags/{tag_id}/posts", response_model=list[PostList])
 def list_tag_posts(session:Session, tag_id:int):
     """Get the posts with a tag."""
 
@@ -90,32 +106,47 @@ def list_tag_posts(session:Session, tag_id:int):
 
 # Post endpoints
 
-@router.get("/posts", response_model=list[PostList])
+post = APIRouter()
+
+@post.get("/posts", response_model=list[PostList])
 def list_posts(
     session:Session,
     skip:int=0,
-    limit:int=10,
-    status:PostStatus|None=None,
-    member_id:int|None=None
+    limit:int=100,
+    sort:str|None=None,
+    filter:str|None=None
 ) -> list[Post]:
     """List posts."""
 
-    return crud.list_posts(session, skip, limit, status, member_id)
+    sort_dict = parse_sort_param(sort) if sort else None
+    filter_dict = parse_filter_param(filter) if filter else None
+
+    return crud.list_posts(
+        session=session,
+        skip=skip,
+        limit=limit,
+        sort=sort_dict,
+        filter=filter_dict
+    )
 
 
 
-@router.post("/posts", response_model=PostRead, status_code=201)
+@post.post("/posts", response_model=PostRead, status_code=201)
 def create_post(session:Session, data:PostCreate) -> Post:
     """Create a new post."""
 
+    author = get_user_by_id(session, data.author_id)
     post = crud.get_post_by_title(session, data.title)
     if post:
         raise HTTPException(409, f"Post {data.title} already exists!")
+    if not author:
+        raise HTTPException(404, f"User #{data.author_id} not found!")
+    data.author_id = author.profile.id
     return crud.create_post(session, data)
 
 
 
-@router.get("/posts/{post_id}", response_model=PostRead)
+@post.get("/posts/{post_id}", response_model=PostRead)
 def get_post(session:Session, post_id:int) -> Post:
     """Get a post by its ID."""
 
@@ -126,7 +157,7 @@ def get_post(session:Session, post_id:int) -> Post:
 
 
 
-@router.put("/posts/{post_id}", response_model=PostRead)
+@post.put("/posts/{post_id}", response_model=PostRead)
 def update_post(
     session:Session, post_id:int, data:PostUpdate
 ) -> Post:
@@ -139,7 +170,7 @@ def update_post(
 
 
 
-@router.delete("/posts/{post_id}", status_code=204)
+@post.delete("/posts/{post_id}", status_code=204)
 def delete_post(
     session:Session, post_id:int, hard:bool=False
 ) -> None:
@@ -154,18 +185,18 @@ def delete_post(
 
 # Post relationship endpoints
 
-@router.get("/posts/{post_id}/author", response_model=MemberRead)
-def list_post_author(session:Session, post_id:int):
+@post.get("/posts/{post_id}/author", response_model=UserRead)
+def get_post_author(session:Session, post_id:int):
     """Get the author of a post."""
 
     post = crud.get_post_by_id(session, post_id)
     if not post:
         raise HTTPException(404, f"Post #{post_id} not found!")
-    return post.member
+    return post.author.user
 
 
 
-@router.get("/posts/{post_id}/tags", response_model=list[TagList])
+@post.get("/posts/{post_id}/tags", response_model=list[TagList])
 def list_post_tags(session:Session, post_id:int):
     """Get the tags of a post."""
 
@@ -176,7 +207,7 @@ def list_post_tags(session:Session, post_id:int):
 
 
 
-@router.get("/posts/{post_id}/comments", response_model=list[CommentList])
+@post.get("/posts/{post_id}/comments", response_model=list[CommentList])
 def list_post_comments(session:Session, post_id:int):
     """Get the comments of a post."""
 
@@ -189,32 +220,52 @@ def list_post_comments(session:Session, post_id:int):
 
 # Comment endpoints
 
-@router.get("/comments", response_model=list[CommentList])
+comment = APIRouter()
+
+
+@comment.get("/comments", response_model=list[CommentList])
 def list_comments(
     session:Session,
     skip:int=0,
-    limit:int=10,
-    member_id:int|None=None,
-    post_id:int|None=None,
-    parent_id:int|None=None
+    limit:int=100,
+    sort:str|None=None,
+    filter:str|None=None
 ) -> list[Comment]:
     """List comments."""
 
+    sort_dict = parse_sort_param(sort) if sort else None
+    filter_dict = parse_filter_param(filter) if filter else None
+
     return crud.list_comments(
-        session, skip, limit, member_id, post_id, parent_id
+        session=session,
+        skip=skip,
+        limit=limit,
+        sort=sort_dict,
+        filter=filter_dict
     )
 
 
 
-@router.comment("/comments", response_model=CommentRead, status_code=201)
+@comment.post("/comments", response_model=CommentRead, status_code=201)
 def create_comment(session:Session, data:CommentCreate) -> Comment:
     """Create a new comment."""
 
+    author = get_user_by_id(session, data.author_id)
+    post = crud.get_post_by_id(session, data.post_id)
+    if not author:
+        raise HTTPException(404, f"User #{data.author_id} not found!")
+    if not post:
+        raise HTTPException(404, f"Post #{data.post_id} not found!")
+    if data.parent_id:
+        parent = crud.get_comment_by_id(session, data.parent_id)
+        if not parent:
+            raise HTTPException(404, f"Comment #{data.parent_id} not found!")
+    data.author_id = author.profile.id
     return crud.create_comment(session, data)
 
 
 
-@router.get("/comments/{comment_id}", response_model=CommentRead)
+@comment.get("/comments/{comment_id}", response_model=CommentRead)
 def get_comment(session:Session, comment_id:int) -> Comment:
     """Get a comment by its ID."""
 
@@ -225,7 +276,7 @@ def get_comment(session:Session, comment_id:int) -> Comment:
 
 
 
-@router.put("/comments/{comment_id}", response_model=CommentRead)
+@comment.put("/comments/{comment_id}", response_model=CommentRead)
 def update_comment(
     session:Session, comment_id:int, data:CommentUpdate
 ) -> Comment:
@@ -238,7 +289,7 @@ def update_comment(
 
 
 
-@router.delete("/comments/{comment_id}", status_code=204)
+@comment.delete("/comments/{comment_id}", status_code=204)
 def delete_comment(
     session:Session, comment_id:int, hard:bool=False
 ) -> None:
@@ -253,19 +304,19 @@ def delete_comment(
 
 # Comment relationship endpoints
 
-@router.get("/comments/{comment_id}/author", response_model=MemberRead)
-def list_comment_author(session:Session, comment_id:int):
+@comment.get("/comments/{comment_id}/author", response_model=UserRead)
+def get_comment_author(session:Session, comment_id:int):
     """Get the author of a comment."""
 
     comment = crud.get_comment_by_id(session, comment_id)
     if not comment:
         raise HTTPException(404, f"Comment #{comment_id} not found!")
-    return comment.member
+    return comment.author.user
 
 
 
-@router.get("/comments/{comment_id}/post", response_model=PostRead)
-def list_comment_post(session:Session, comment_id:int):
+@comment.get("/comments/{comment_id}/post", response_model=PostRead)
+def get_comment_post(session:Session, comment_id:int):
     """Get the post of a comment."""
 
     comment = crud.get_comment_by_id(session, comment_id)
@@ -275,8 +326,8 @@ def list_comment_post(session:Session, comment_id:int):
 
 
 
-@router.get("/comments/{comment_id}/parent", response_model=CommentRead)
-def list_comment_parent(session:Session, comment_id:int):
+@comment.get("/comments/{comment_id}/parent", response_model=CommentRead)
+def get_comment_parent(session:Session, comment_id:int):
     """Get the parent of a comment."""
 
     comment = crud.get_comment_by_id(session, comment_id)
@@ -286,7 +337,7 @@ def list_comment_parent(session:Session, comment_id:int):
 
 
 
-@router.get(
+@comment.get(
         "/comments/{comment_id}/reactions",
         response_model=list[CommentReactionList]
 )
@@ -300,7 +351,9 @@ def list_comment_reactions(session:Session, comment_id:int):
 
 
 
-@router.get("/comments/{comment_id}/replies", response_model=list[CommentList])
+@comment.get(
+    "/comments/{comment_id}/replies", response_model=list[CommentList]
+)
 def list_comment_replies(session:Session, comment_id:int):
     """Get the replies of a comment."""
 
@@ -313,34 +366,50 @@ def list_comment_replies(session:Session, comment_id:int):
 
 # CommentReaction endpoints
 
-@router.get("/reactions", response_model=list[CommentReactionList])
+reaction = APIRouter()
+
+
+@reaction.get("/reactions", response_model=list[CommentReactionList])
 def list_reactions(
     session:Session,
     skip:int=0,
-    limit:int=10,
-    reaction_type:ReactionType|None=None,
-    comment_id:int|None=None,
-    member_id:int|None=None
+    limit:int=100,
+    sort:str|None=None,
+    filter:str|None=None
 ) -> list[CommentReaction]:
     """List reactions."""
 
+    sort_dict = parse_sort_param(sort) if sort else None
+    filter_dict = parse_filter_param(filter) if filter else None
+
     return crud.list_reactions(
-        session, skip, limit, reaction_type, comment_id, member_id
+        session=session,
+        skip=skip,
+        limit=limit,
+        sort=sort_dict,
+        filter=filter_dict
     )
 
 
 
-@router.reaction(
-        "/reactions", response_model=CommentReactionRead, status_code=201
+@reaction.post(
+    "/reactions", response_model=CommentReactionRead, status_code=201
 )
 def create_reaction(session:Session, data:CommentReactionCreate) -> CommentReaction:
     """Create a new reaction."""
 
+    author = get_user_by_id(session, data.author_id)
+    comment = crud.get_comment_by_id(session, data.comment_id)
+    if not author:
+        raise HTTPException(404, f"User #{data.author_id} not found!")
+    if not comment:
+        raise HTTPException(404, f"Comment #{data.comment_id} not found!")
+    data.author_id = author.profile.id
     return crud.create_reaction(session, data)
 
 
 
-@router.get("/reactions/{reaction_id}", response_model=CommentReactionRead)
+@reaction.get("/reactions/{reaction_id}", response_model=CommentReactionRead)
 def get_reaction(session:Session, reaction_id:int) -> CommentReaction:
     """Get a reaction by its ID."""
 
@@ -351,7 +420,7 @@ def get_reaction(session:Session, reaction_id:int) -> CommentReaction:
 
 
 
-@router.put("/reactions/{reaction_id}", response_model=CommentReactionRead)
+@reaction.put("/reactions/{reaction_id}", response_model=CommentReactionRead)
 def update_reaction(
     session:Session, reaction_id:int, data:CommentReactionUpdate
 ) -> CommentReaction:
@@ -364,7 +433,7 @@ def update_reaction(
 
 
 
-@router.delete("/reactions/{reaction_id}", status_code=204)
+@reaction.delete("/reactions/{reaction_id}", status_code=204)
 def delete_reaction(
     session:Session, reaction_id:int, hard:bool=False
 ) -> None:

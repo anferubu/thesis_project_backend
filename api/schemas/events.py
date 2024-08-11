@@ -4,8 +4,9 @@ from typing import Any, Annotated
 from pydantic import model_validator
 from sqlmodel import create_engine, select, Field, Session, SQLModel
 
-from api.models.users import User
+from api.models.users import User, Profile
 from api.models.utils.enums import EventType
+from api.schemas import utils
 from core.secrets import env
 
 
@@ -23,17 +24,8 @@ class EventBase(SQLModel):
 
     @model_validator(mode="before")
     def validate_schema(cls, values:Any) -> Any:
-        """Validates the creation/update schema data."""
-
-        # remove whitespaces at beginning and end of a string.
-        for key, value in values.items():
-            if isinstance(value, str):
-                values[key] = value.strip()
-        # validate dates
-        start_date = values.get("start_date")
-        end_date = values.get("end_date")
-        if start_date and end_date and start_date > end_date:
-            raise ValueError("Start date must be before or equal to end date.")
+        values = utils.remove_whitespaces(values)
+        values = utils.check_start_end_dates(values)
         return values
 
 
@@ -58,8 +50,8 @@ class EventCreate(EventBase):
         if organizer_id and team_id:
             with Session(engine) as session:
                 query = select(User).where(
-                    User.profile.id == organizer_id,
-                    User.profile.team_id == team_id
+                    User.profile.has(Profile.id == organizer_id),
+                    User.profile.has(Profile.team_id == team_id),
                 )
                 result = session.exec(query).first()
                 if result is None:
@@ -143,12 +135,7 @@ class ReviewCreate(SQLModel):
 
     @model_validator(mode="before")
     def validate_schema(cls, values:Any) -> Any:
-        """Validates the creation/update schema data."""
-
-        # remove whitespaces at beginning and end of a string.
-        for key, value in values.items():
-            if isinstance(value, str):
-                values[key] = value.strip()
+        values = utils.remove_whitespaces(values)
         return values
 
 
@@ -160,7 +147,7 @@ class ReviewUpdate(ReviewCreate):
 class ReviewRead(SQLModel):
     score: int
     comment: str
-    member_id: int
+    author_id: int
     event_id: int
     created_at: datetime
     updated_at: datetime
@@ -176,7 +163,7 @@ class ReviewEventList(SQLModel):
 class ReviewMemberList(SQLModel):
     score: int
     comment: str
-    member_id: int
+    author_id: int
     created_at: datetime
 
 
@@ -189,12 +176,7 @@ class PathCreate(SQLModel):
 
     @model_validator(mode="before")
     def validate_schema(cls, values:Any) -> Any:
-        """Validates the creation/update schema data."""
-
-        # remove whitespaces at beginning and end of a string.
-        for key, value in values.items():
-            if isinstance(value, str):
-                values[key] = value.strip()
+        values = utils.remove_whitespaces(values)
         return values
 
 

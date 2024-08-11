@@ -1,49 +1,60 @@
 from fastapi import APIRouter, HTTPException
 
 from api.crud import feedbacks as crud
+from api.crud.users import get_user_by_id
+from api.crud.utils import parse_filter_param, parse_sort_param
 from api.models.feedbacks import Feedback, FeedbackAnswer
-from api.models.utils.enums import FeedbackStatus, FeedbackType
 from api.schemas.feedbacks import (
     FeedbackCreate, FeedbackUpdate, FeedbackRead, FeedbackList,
     FeedbackAnswerCreate, FeedbackAnswerUpdate, FeedbackAnswerRead,
     FeedbackAnswerList)
-from api.schemas.users import MemberRead
+from api.schemas.users import UserRead
 from core.database import DBSession as Session
 
 
 
-router = APIRouter()
+feedback = APIRouter()
 
 
 
 # Feedback endpoints
 
-@router.get("/feedbacks", response_model=list[FeedbackList])
+@feedback.get("/feedbacks", response_model=list[FeedbackList])
 def list_feedbacks(
     session:Session,
     skip:int=0,
-    limit:int=10,
-    feedback_type:FeedbackType|None=None,
-    status:FeedbackStatus|None=None,
-    member_id:int|None=None
+    limit:int=100,
+    sort:str|None=None,
+    filter:str|None=None
 ) -> list[Feedback]:
     """List feedbacks."""
 
+    sort_dict = parse_sort_param(sort) if sort else None
+    filter_dict = parse_filter_param(filter) if filter else None
+
     return crud.list_feedbacks(
-        session, skip, limit, feedback_type, status, member_id
+        session=session,
+        skip=skip,
+        limit=limit,
+        sort=sort_dict,
+        filter=filter_dict
     )
 
 
 
-@router.post("/feedbacks", response_model=FeedbackRead, status_code=201)
+@feedback.post("/feedbacks", response_model=FeedbackRead, status_code=201)
 def create_feedback(session:Session, data:FeedbackCreate) -> Feedback:
     """Create a new feedback."""
 
+    author = get_user_by_id(session, data.author_id)
+    if not author:
+        raise HTTPException(404, f"User #{data.author_id} not found!")
+    data.author_id = author.profile.id
     return crud.create_feedback(session, data)
 
 
 
-@router.get("/feedbacks/{feedback_id}", response_model=FeedbackRead)
+@feedback.get("/feedbacks/{feedback_id}", response_model=FeedbackRead)
 def get_feedback(session:Session, feedback_id:int) -> Feedback:
     """Get a feedback by its ID."""
 
@@ -54,7 +65,7 @@ def get_feedback(session:Session, feedback_id:int) -> Feedback:
 
 
 
-@router.put("/feedbacks/{feedback_id}", response_model=FeedbackRead)
+@feedback.put("/feedbacks/{feedback_id}", response_model=FeedbackRead)
 def update_feedback(
     session:Session, feedback_id:int, data:FeedbackUpdate
 ) -> Feedback:
@@ -67,7 +78,7 @@ def update_feedback(
 
 
 
-@router.delete("/feedbacks/{feedback_id}", status_code=204)
+@feedback.delete("/feedbacks/{feedback_id}", status_code=204)
 def delete_feedback(
     session:Session, feedback_id:int, hard:bool=False
 ) -> None:
@@ -82,19 +93,19 @@ def delete_feedback(
 
 # Feedback relationship endpoints
 
-@router.get("/feedbacks/{feedback_id}/author", response_model=MemberRead)
-def list_feedback_author(session:Session, feedback_id:int):
+@feedback.get("/feedbacks/{feedback_id}/author", response_model=UserRead)
+def get_feedback_author(session:Session, feedback_id:int):
     """Get the author of a feedback."""
 
     feedback = crud.get_feedback_by_id(session, feedback_id)
     if not feedback:
         raise HTTPException(404, f"Feedback #{feedback_id} not found!")
-    return feedback.member
+    return feedback.author.user
 
 
 
-@router.get("/feedbacks/{feedback_id}/answer", response_model=FeedbackAnswerRead)
-def list_feedback_answer(session:Session, feedback_id:int):
+@feedback.get("/feedbacks/{feedback_id}/answer", response_model=FeedbackAnswerRead)
+def get_feedback_answer(session:Session, feedback_id:int):
     """Get the answer of a feedback."""
 
     feedback = crud.get_feedback_by_id(session, feedback_id)
@@ -106,23 +117,33 @@ def list_feedback_answer(session:Session, feedback_id:int):
 
 # FeedbackAnswer endpoints
 
-@router.get("/feedback_answers", response_model=list[FeedbackAnswerList])
+answer = APIRouter()
+
+
+@answer.get("/feedback_answers", response_model=list[FeedbackAnswerList])
 def list_feedback_answers(
     session:Session,
     skip:int=0,
-    limit:int=10,
-    member_id:int|None=None,
-    feedback_id:int|None=None
+    limit:int=100,
+    sort:str|None=None,
+    filter:str|None=None
 ) -> list[FeedbackAnswer]:
     """List feedback answers."""
 
+    sort_dict = parse_sort_param(sort) if sort else None
+    filter_dict = parse_filter_param(filter) if filter else None
+
     return crud.list_feedback_answers(
-        session, skip, limit, member_id, feedback_id
+        session=session,
+        skip=skip,
+        limit=limit,
+        sort=sort_dict,
+        filter=filter_dict
     )
 
 
 
-@router.post(
+@answer.post(
     "/feedback_answers", response_model=FeedbackAnswerRead, status_code=201
 )
 def create_feedback_answer(
@@ -130,11 +151,18 @@ def create_feedback_answer(
 ) -> FeedbackAnswer:
     """Create a new feedback answer."""
 
+    feedback = crud.get_feedback_by_id(session, data.feedback_id)
+    author = get_user_by_id(session, data.author_id)
+    if feedback:
+        raise HTTPException(409, f"La consulta ya ha sido resuelta por el usuario #{feedback.author_id}")
+    if not author:
+        raise HTTPException(404, f"User #{data.author_id} not found!")
+    data.author_id = author.profile.id
     return crud.create_feedback_answer(session, data)
 
 
 
-@router.get(
+@answer.get(
     "/feedback_answers/{feedback_answer_id}",
     response_model=FeedbackAnswerRead
 )
@@ -150,7 +178,7 @@ def get_feedback_answer(
 
 
 
-@router.put(
+@answer.put(
         "/feedback_answers/{feedback_answer_id}",
         response_model=FeedbackAnswerRead
 )
@@ -166,7 +194,7 @@ def update_feedback_answer(
 
 
 
-@router.delete("/feedback_answers/{feedback_answer_id}", status_code=204)
+@answer.delete("/feedback_answers/{feedback_answer_id}", status_code=204)
 def delete_feedback_answer(
     session:Session, feedback_answer_id:int, hard:bool=False
 ) -> None:
@@ -181,26 +209,26 @@ def delete_feedback_answer(
 
 # FeedbackAnswer relationship endpoints
 
-@router.get(
+@answer.get(
         "/feedback_answers/{feedback_answer_id}/author",
-        response_model=MemberRead
+        response_model=UserRead
 )
-def list_feedback_answer_author(session:Session, feedback_answer_id:int):
+def get_feedback_answer_author(session:Session, feedback_answer_id:int):
     """Get the author of a feedback answer."""
 
     feedback_answer = crud.get_feedback_answer_by_id(session, feedback_answer_id)
     if not feedback_answer:
         raise HTTPException(404, f"Feedback answer #{feedback_answer_id} not found!")
-    return feedback_answer.member
+    return feedback_answer.author.user
 
 
 
-@router.get(
+@answer.get(
         "/feedback_answers/{feedback_answer_id}/feedback",
         response_model=FeedbackRead
 )
-def list_feedback_answer_feedback(session:Session, feedback_answer_id:int):
-    """Get the author of a feedback answer."""
+def get_feedback_answer_feedback(session:Session, feedback_answer_id:int):
+    """Get the feedback of an answer."""
 
     feedback_answer = crud.get_feedback_answer_by_id(session, feedback_answer_id)
     if not feedback_answer:

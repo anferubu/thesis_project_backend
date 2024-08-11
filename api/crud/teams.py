@@ -1,7 +1,7 @@
 from sqlmodel import Session, select
 
+from api.crud.utils import apply_filters, apply_sorting
 from api.models.teams import Location, Team
-from api.models.utils.enums import LocationType
 from api.schemas.teams import (
     TeamCreate, TeamUpdate, LocationCreate, LocationUpdate)
 
@@ -37,20 +37,23 @@ def get_team_by_name(session:Session, name:str) -> Team|None:
 
 
 def list_teams(
-        session:Session,
-        skip:int|None=None,
-        limit:int|None=None,
-        location_id:int|None=None
+    session:Session,
+    skip:int|None=None,
+    limit:int|None=None,
+    sort: dict[str, str]|None = None,
+    filter: dict[str, any]|None = None
 ) -> list[Team]:
     """List teams."""
 
     query = select(Team).where(Team.deleted == False)
+    if filter:
+        query = apply_filters(query, Team, filter)
+    if sort:
+        query = apply_sorting(query, Team, sort)
     if skip is not None:
         query = query.offset(skip)
     if limit is not None:
         query = query.limit(limit)
-    if location_id is not None:
-        query = query.where(Team.location_id == location_id)
     return session.exec(query).all()
 
 
@@ -120,26 +123,23 @@ def get_location_by_name(session:Session, name:str) -> Location|None:
 
 
 def list_locations(
-        session:Session,
-        skip:int|None=None,
-        limit:int|None=None,
-        loc_type:LocationType|None=None,
-        department_id:int|None=None,
-        is_capital:bool|None=None
+    session:Session,
+    skip:int|None=None,
+    limit:int|None=None,
+    sort: dict[str, str]|None = None,
+    filter: dict[str, any]|None = None
 ) -> list[Location]:
     """List locations."""
 
     query = select(Location).where(Location.deleted == False)
+    if filter:
+        query = apply_filters(query, Location, filter)
+    if sort:
+        query = apply_sorting(query, Location, sort)
     if skip is not None:
         query = query.offset(skip)
     if limit is not None:
         query = query.limit(limit)
-    if loc_type is not None:
-        query = query.where(Location.type == loc_type)
-    if department_id is not None:
-        query = query.where(Location.department_id == department_id)
-    if is_capital is not None:
-        query = query.where(Location.is_capital == is_capital)
     return session.exec(query).all()
 
 

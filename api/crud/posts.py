@@ -1,8 +1,8 @@
 from sqlalchemy import func
 from sqlmodel import Session, select
 
+from api.crud.utils import apply_filters, apply_sorting
 from api.models.posts import Comment, CommentReaction, Post, Tag
-from api.models.utils.enums import PostStatus, ReactionType
 from api.schemas.posts import (
     TagCreate, TagUpdate, PostCreate, PostUpdate, CommentCreate,
     CommentUpdate, CommentReactionCreate, CommentReactionUpdate)
@@ -41,11 +41,19 @@ def get_tag_by_name(session:Session, name:str) -> Tag|None:
 
 
 def list_tags(
-    session:Session, skip:int|None=None, limit:int|None=None
+    session:Session,
+    skip:int|None=None,
+    limit:int|None=None,
+    sort: dict[str, str]|None = None,
+    filter: dict[str, any]|None = None
 ) -> list[Tag]:
     """List tags."""
 
     query = select(Tag).where(Tag.deleted == False)
+    if filter:
+        query = apply_filters(query, Tag, filter)
+    if sort:
+        query = apply_sorting(query, Tag, sort)
     if skip is not None:
         query = query.offset(skip)
     if limit is not None:
@@ -91,7 +99,8 @@ def delete_tag(
 def create_post(session:Session, data:PostCreate) -> Post:
     """Create a post."""
 
-    new_post = Post.model_validate(data)
+    post_data = data.model_dump(exclude_unset=True)
+    new_post = Post(**post_data)
     session.add(new_post)
     session.commit()
     session.refresh(new_post)
@@ -121,20 +130,20 @@ def list_posts(
     session:Session,
     skip:int|None=None,
     limit:int|None=None,
-    status:PostStatus|None=None,
-    member_id:int|None=None
+    sort: dict[str, str]|None = None,
+    filter: dict[str, any]|None = None
 ) -> list[Post]:
     """List posts."""
 
     query = select(Post).where(Post.deleted == False)
+    if filter:
+        query = apply_filters(query, Post, filter)
+    if sort:
+        query = apply_sorting(query, Post, sort)
     if skip is not None:
         query = query.offset(skip)
     if limit is not None:
         query = query.limit(limit)
-    if status is not None:
-        query = query.where(Post.status == status)
-    if member_id is not None:
-        query = query.where(Post.member_id == member_id)
     return session.exec(query).all()
 
 
@@ -196,23 +205,20 @@ def list_comments(
     session:Session,
     skip:int|None=None,
     limit:int|None=None,
-    member_id:int|None=None,
-    post_id:int|None=None,
-    parent_id:int|None=None
+    sort: dict[str, str]|None = None,
+    filter: dict[str, any]|None = None
 ) -> list[Comment]:
     """List comments."""
 
     query = select(Comment).where(Comment.deleted == False)
+    if filter:
+        query = apply_filters(query, Comment, filter)
+    if sort:
+        query = apply_sorting(query, Comment, sort)
     if skip is not None:
         query = query.offset(skip)
     if limit is not None:
         query = query.limit(limit)
-    if member_id is not None:
-        query = query.where(Comment.member_id == member_id)
-    if post_id is not None:
-        query = query.where(Comment.post_id == post_id)
-    if parent_id is not None:
-        query = query.where(Comment.parent_id == parent_id)
     return session.exec(query).all()
 
 
@@ -278,23 +284,20 @@ def list_reactions(
     session:Session,
     skip:int|None=None,
     limit:int|None=None,
-    reaction_type:ReactionType|None=None,
-    comment_id:int|None=None,
-    member_id:int|None=None,
+    sort: dict[str, str]|None = None,
+    filter: dict[str, any]|None = None
 ) -> list[CommentReaction]:
     """List reactions."""
 
     query = select(CommentReaction).where(CommentReaction.deleted == False)
+    if filter:
+        query = apply_filters(query, CommentReaction, filter)
+    if sort:
+        query = apply_sorting(query, CommentReaction, sort)
     if skip is not None:
         query = query.offset(skip)
     if limit is not None:
         query = query.limit(limit)
-    if reaction_type is not None:
-        query = query.where(CommentReaction.type == reaction_type)
-    if comment_id is not None:
-        query = query.where(CommentReaction.comment_id == comment_id)
-    if member_id is not None:
-        query = query.where(CommentReaction.member_id == member_id)
     return session.exec(query).all()
 
 

@@ -7,7 +7,8 @@ from typing import Any, Annotated
 from pydantic import model_validator, FilePath
 from sqlmodel import Field, SQLModel
 
-from api.models.utils.enums import ReactionType
+from api.models.utils.enums import ReactionType, PostStatus
+from api.schemas import utils
 
 
 
@@ -18,12 +19,7 @@ class TagCreate(SQLModel):
 
     @model_validator(mode="before")
     def validate_schema(cls, values:Any) -> Any:
-        """Validates the creation/update schema data."""
-
-        # remove whitespaces at beginning and end of a string.
-        for key, value in values.items():
-            if isinstance(value, str):
-                values[key] = value.strip()
+        values = utils.remove_whitespaces(values)
         return values
 
 
@@ -48,15 +44,13 @@ class TagList(SQLModel):
 
 class PostBase(SQLModel):
     title: Annotated[str, Field(min_length=3, max_length=100)]
+    slug: str|None = None
 
     @model_validator(mode="before")
     def validate_schema(cls, values:Any) -> Any:
         """Validates the creation/update schema data."""
 
-        # remove whitespaces at beginning and end of a string.
-        for key, value in values.items():
-            if isinstance(value, str):
-                values[key] = value.strip()
+        values = utils.remove_whitespaces(values)
         # Generate slug if title is present
         if 'title' in values and values['title']:
             values['slug'] = cls.create_slug(values['title'])
@@ -78,7 +72,7 @@ class PostBase(SQLModel):
 class PostCreate(PostBase):
     title: Annotated[str, Field(min_length=3, max_length=100)]
     content: Annotated[str, Field(max_length=2500)]
-    status: str|None = None
+    status: PostStatus|None = None
     thumbnail: FilePath|None = None
     author_id: int
 
@@ -86,7 +80,7 @@ class PostCreate(PostBase):
 class PostUpdate(PostBase):
     title: Annotated[str|None, Field(min_length=3, max_length=100)] = None
     content: Annotated[str|None, Field(max_length=2500)] = None
-    status: str|None = None
+    status: PostStatus|None = None
     thumbnail: FilePath|None = None
 
 
@@ -96,7 +90,7 @@ class PostRead(SQLModel):
     slug: str
     content: str
     tags: list[TagList]
-    status: str
+    status: PostStatus
     author_id: int
     thumbnail: FilePath|None = None
     created_at: datetime
@@ -118,12 +112,7 @@ class CommentBase(SQLModel):
 
     @model_validator(mode="before")
     def validate_schema(cls, values:Any) -> Any:
-        """Validates the creation/update schema data."""
-
-        # remove whitespaces at beginning and end of a string.
-        for key, value in values.items():
-            if isinstance(value, str):
-                values[key] = value.strip()
+        values = utils.remove_whitespaces(values)
         return values
 
 

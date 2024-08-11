@@ -5,6 +5,7 @@ from pydantic import model_validator
 from sqlmodel import Field, SQLModel
 
 from api.models.utils.enums import LocationType
+from api.schemas import utils
 
 
 
@@ -14,12 +15,7 @@ class TeamBase(SQLModel):
 
     @model_validator(mode="before")
     def validate_schema(cls, values:Any) -> Any:
-        """Validates the creation/update schema data."""
-
-        # remove whitespaces at beginning and end of a string.
-        for key, value in values.items():
-            if isinstance(value, str):
-                values[key] = value.strip()
+        values = utils.remove_whitespaces(values)
         return values
 
 
@@ -57,12 +53,7 @@ class LocationBase(SQLModel):
 
     @model_validator(mode="before")
     def validate_schema(cls, values:Any) -> Any:
-        """Validates the creation/update schema data."""
-
-        # remove whitespaces at beginning and end of a string.
-        for key, value in values.items():
-            if isinstance(value, str):
-                values[key] = value.strip()
+        values = utils.remove_whitespaces(values)
         return values
 
 
