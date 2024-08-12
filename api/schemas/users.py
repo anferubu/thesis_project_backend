@@ -18,6 +18,10 @@ class Token(SQLModel):
     token_type: str = "bearer"
 
 
+class TokenRefreshRequest(SQLModel):
+    refresh_token: str
+
+
 
 # User-Profile schemas
 

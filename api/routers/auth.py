@@ -4,7 +4,8 @@ from api.crud import users as crud
 from api.dependencies.auth import CurrentUser, LoginFormData
 from api.models.users import User
 from api.schemas.users import (
-    PasswordChange, Token, UserCreate, UserRead, RequestPasswordReset)
+    PasswordChange, Token, TokenRefreshRequest, UserCreate, UserRead,
+    RequestPasswordReset)
 from api.utils.security import jwt
 from api.utils.security.authenticate import authenticate
 from api.utils.security.hashing import verify_password, get_password_hash
@@ -38,10 +39,10 @@ def login_for_access_token(
 
 
 @auth.post("/refresh-token", response_model=Token)
-def refresh_access_token(refresh_token:str) -> Token:
+def refresh_access_token(data:TokenRefreshRequest) -> Token:
     """Refreshes the access token using the provided refresh token. """
 
-    payload = jwt.decode_token(refresh_token)
+    payload = jwt.decode_token(data.refresh_token)
     email = payload.get("sub")
     if not email:
         raise HTTPException(401, "Invalid or expired token!")

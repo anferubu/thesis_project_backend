@@ -29,14 +29,17 @@ class RoleChecker:
     def __call__(self, user_role:CurrentUserRole):
         """Evaluates whether the active user has any of the allowed roles."""
 
-        if user_role.name not in self.allowed_roles:
+        print("USER ROL ID", user_role.id)
+        print("ALLOWED ROLES", self.allowed_roles)
+
+        if user_role.id not in self.allowed_roles:
             raise HTTPException(
                 403,
-                "User doesn't have the necessary role to access this route"
+                "You are not authorized to access this resource."
             )
         return True
 
 
 # Dependency: Check if the current user has any of the specified roles
-def check_role(*allowed_roles:str):
+def roles_required(*allowed_roles:str):
     return Depends(RoleChecker(allowed_roles=allowed_roles))

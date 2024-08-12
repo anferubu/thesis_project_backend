@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException
 from api.crud import agreements as crud
 from api.crud.teams import get_team_by_id
 from api.crud.utils import parse_filter_param, parse_sort_param
+from api.dependencies.roles import roles_required
 from api.models.agreements import Agreement, Company
 from api.schemas.agreements import (
     AgreementCreate, AgreementRead, AgreementUpdate, AgreementList,
@@ -18,7 +19,11 @@ agreement = APIRouter()
 
 # Agreement endpoints
 
-@agreement.get("/agreements", response_model=list[AgreementList])
+@agreement.get(
+    "/agreements",
+    response_model=list[AgreementList],
+    dependencies=[roles_required(1)]
+)
 def list_agreements(
     session:Session,
     skip:int=0,
