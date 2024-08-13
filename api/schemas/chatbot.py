@@ -2,5 +2,5 @@ from sqlmodel import SQLModel
 
 
 
-class ChatPrompt(SQLModel):
-    prompt: str
+class Chatbot(SQLModel):
+    query: str
