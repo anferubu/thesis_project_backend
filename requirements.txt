@@ -33,7 +33,6 @@ packaging==24.0
 passlib==1.7.4
 pillow==10.4.0
 pluggy==1.5.0
-psycopg2==2.9.9
 pyasn1==0.6.0
 pycparser==2.22
 pydantic==2.7.2
