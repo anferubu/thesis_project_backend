@@ -30,5 +30,7 @@ class EnvSettings(BaseSettings):
     allowed_hosts: str
     allow_origins: str
 
+    gemini_api_key: str
+
 
 env = EnvSettings(_env_file=".env")
