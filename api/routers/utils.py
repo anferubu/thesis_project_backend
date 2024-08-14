@@ -1,7 +1,12 @@
 from datetime import datetime
+import io
 import textwrap
 
 import google.generativeai as genai
+from PIL import Image, ImageDraw, ImageFont
+from reportlab.lib.units import inch
+from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
 from sqlmodel import create_engine, select, Session
 
 from api.models.posts import Post
@@ -18,7 +23,7 @@ engine = create_engine(DATABASE_URL)
 
 
 
-def get_response_from_chatbot(query):
+def get_response_from_chatbot(query:str):
     """Get a response from Gemini Pro Assistant."""
 
     genai.configure(api_key=GEMINI_API_KEY)
@@ -32,7 +37,7 @@ def get_response_from_chatbot(query):
 
 
 
-def make_prompt(query, source):
+def make_prompt(query:str, source:str):
     """Make the prompt for the chatbot using user input and a data source."""
 
     now = datetime.now()
@@ -89,3 +94,90 @@ def get_motorcycle_club_info():
         for i, post in enumerate(posts, 1):
             text += f"{i}- {post.title} (fecha de creación: {post.created_at}): {post.content}\n"
         return text
+
+
+
+def get_membership_card(
+    name:str,
+    surname:str,
+    team:str,
+    role:str,
+    doc_type:str,
+    doc_number:str,
+    rh:str,
+    location:str,
+    telephone:str,
+    photo_path:str='static/images/profile.jpg',
+    output_format:str='PNG'
+):
+    """Generate the membership card of an user."""
+
+    width, height = 600, 375
+    small_font = ImageFont.truetype("arial.ttf", 14)
+    small_bold_font = ImageFont.truetype("arialbd.ttf", 14)
+    regular_font = ImageFont.truetype("arial.ttf", 18)
+    regular_bold_font = ImageFont.truetype("arialbd.ttf", 20)
+    large_font = ImageFont.truetype("arialbd.ttf", 40)
+    mlarge_font = ImageFont.truetype("arialbd.ttf", 50)
+    xlarge_font = ImageFont.truetype("arialbd.ttf", 60)
+    img = Image.new('RGB', (width, height), color=(255, 255, 255))
+    d = ImageDraw.Draw(img)
+    # Add graphic elements
+    d.rounded_rectangle(
+        [(0, 0), (width, height // 2)],
+        fill=(35, 45, 121),
+        radius=20,
+        corners=(True, True, False, False))
+    d.rounded_rectangle(
+        [(0, height // 2), (width, height)],
+        fill=(75, 85, 181),
+        radius=20,
+        corners=(False, False, True, True))
+    d.rectangle([(570, 275), (width, 350)], fill=(255, 165, 0))
+    # Add text
+    team_text = f"Miembro del Equipo {team}".upper()
+    location_text = f"{location}, Colombia"
+    role_text = role.upper()
+    name_text = name.upper()
+    surname_text = surname.upper()
+    fullname_text = f"{name_text} {surname_text}"
+    id_text = f"{doc_type}: {doc_number}".upper()
+    rh_text = f"RH: {rh}".upper()
+    tel_text = f"Tel: {telephone}"
+    d.text((25, 25), team_text, fill=(199, 203, 242), font=small_font)
+    d.text((25, 42), location_text, fill=(199, 203, 242), font=regular_bold_font)
+    if len(fullname_text) >= 12:
+        d.text((30, 140), name_text, fill=(255, 255, 255), font=large_font)
+        d.text((30, 188), surname_text, fill=(255, 255, 255), font=large_font)
+    elif 9 < len(fullname_text) < 12:
+        d.text((30, 163), fullname_text, fill=(255, 255, 255), font=mlarge_font)
+    else:
+        d.text((30, 163), fullname_text, fill=(255, 255, 255), font=xlarge_font)
+    d.text((30, 265), id_text, fill=(255, 255, 255), font=regular_font)
+    d.text((30, 290), tel_text, fill=(255, 255, 255), font=regular_font)
+    d.text((30, 315), rh_text, fill=(255, 255, 255), font=regular_font)
+    if len(role_text) >13:
+        d.text((400, 210), role_text, fill=(199, 203, 242), font=small_bold_font)
+    else:
+        d.text((400, 210), role_text, fill=(199, 203, 242), font=regular_bold_font)
+    # Add photo
+    logo = Image.open(photo_path)
+    if logo.mode in ('RGBA', 'LA'):
+        logo = logo.convert("RGBA")
+        white_bg = Image.new("RGB", logo.size, (255, 255, 255))
+        logo = Image.alpha_composite(white_bg.convert("RGBA"), logo)
+    logo.thumbnail((150, 150), Image.Resampling.LANCZOS)
+    img.paste(logo, (400, 50))
+    # Save image in the indicated format
+    if output_format == 'PNG':
+        output = io.BytesIO()
+        img.save(output, format='PNG')
+        output.seek(0)
+    elif output_format == 'PDF':
+        card_width, card_height = 3.375 * inch, 2.125 * inch
+        output = io.BytesIO()
+        pdf = canvas.Canvas(output, pagesize=(card_width, card_height))
+        pdf.drawImage(ImageReader(img), 0, 0, width=card_width, height=card_height)
+        pdf.save()
+        output.seek(0)
+    return output.getvalue()
