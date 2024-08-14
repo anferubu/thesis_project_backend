@@ -27,8 +27,7 @@ class EnvSettings(BaseSettings):
     mail_from: str
     mail_from_name: str
 
-    allowed_hosts: str
-    allow_origins: str
+    allow_origins: list
 
     gemini_api_key: str
 

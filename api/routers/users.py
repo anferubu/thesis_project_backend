@@ -1,10 +1,13 @@
 from datetime import date
+import io
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import Response, StreamingResponse
 
 from api.crud import users as crud
 from api.crud.utils import parse_filter_param, parse_sort_param
 from api.models.users import Brand, Motorcycle, Role, User
+from api.routers.utils import get_membership_card
 from api.schemas.users import (
     BrandCreate, BrandList, BrandRead, BrandUpdate,
     MotorcycleCreate, MotorcycleList, MotorcycleRead, MotorcycleUpdate,
@@ -373,15 +376,34 @@ membership = APIRouter()
 
 
 @membership.get("/users/{user_id}/membership-card")
-def get_membership_card(session:Session, user_id:int):
+def generate_membership_card(session:Session, user_id:int, format:str="PNG"):
     """Get the membership card of a user."""
 
     user = crud.get_user_by_id(session, user_id)
+    photo = user.profile.photo
     if not user:
         raise HTTPException(404, f"User #{user_id} not found!")
-    return {
-        "message": "endpoint not implemented!"
+    data = {
+        "name": user.profile.first_name,
+        "surname": user.profile.last_name,
+        "team": user.profile.team.name,
+        "role": user.role.name,
+        "doc_type": user.profile.document_type.name,
+        "doc_number": user.profile.document_number,
+        "rh": user.profile.rh.value,
+        "location": user.profile.team.location.name,
+        "telephone": user.profile.telephone,
+        "output_format": format,
     }
+    if photo is not None:
+        data["photo_path"] = photo
+    card = get_membership_card(**data)
+    file = io.BytesIO(card)
+    if format.upper() == "PDF":
+        headers = {"Content-Disposition": 'attachment; filename="membership_card.pdf"'}
+        return StreamingResponse(file, headers=headers, media_type="application/pdf")
+    else:
+        return StreamingResponse(file, media_type="image/png")
 
 
 
