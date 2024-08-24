@@ -3,6 +3,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from api.crud import users as crud
 from api.dependencies.auth import CurrentUser, LoginFormData
 from api.models.users import User
+from api.models.utils.enums import UserStatus
 from api.schemas.users import (
     PasswordChange, Token, TokenRefreshRequest, UserCreate, UserRead,
     RequestPasswordReset)
@@ -104,11 +105,11 @@ def confirm_email(session:DBSession, token:str) -> dict:
     user = crud.get_user_by_email(session=session, email=email)
     if not user:
         raise HTTPException(404, f"User with email {email} not found")
-    if user.status == "active":
+    if user.status == UserStatus.ACTIVE:
         raise HTTPException(
             409, f"User with email {user.email} is already registered!"
         )
-    user.status = "active"
+    user.status = UserStatus.ACTIVE
     session.add(user)
     session.commit()
     session.refresh(user)
