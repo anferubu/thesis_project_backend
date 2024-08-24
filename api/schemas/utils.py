@@ -28,13 +28,14 @@ def check_telephone(values:Any, field_name:str) -> Any:
     """Validates that telephone has a valid format."""
 
     telephone = values.get(field_name)
+    if telephone is None: return values
     # remove '-' and spaces from the telephone
     telephone = re.sub(r'[^\d]', '', telephone)
-    values[field_name] = telephone
     if telephone and not re.match(r'^3\d{9}$', telephone):
         raise ValueError(
             "Phone number must be a valid mobile number, e.g., 3001234567."
         )
+    values[field_name] = telephone
     return values
 
 

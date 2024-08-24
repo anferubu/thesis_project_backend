@@ -56,7 +56,7 @@ class Location(Base, table=True):
 
     name: str = Field(index=True)
     type: LocationType
-    is_capital: bool = Field(default=False)
+    is_capital: bool|None = Field(default=False)
     department_id: int|None = Field(default=None, foreign_key="location.id")
 
     department: Optional["Location"] = Relationship(back_populates="cities", sa_relationship_kwargs={"remote_side": "Location.id"})

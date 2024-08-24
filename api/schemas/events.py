@@ -101,11 +101,11 @@ class EventList(SQLModel):
 # Participation schemas
 
 class ParticipationCreate(SQLModel):
-    attended: bool|None = None
+    attended: bool|None = False
 
 
 class ParticipationUpdate(SQLModel):
-    attended: bool|None = None
+    attended: bool|None = False
 
 
 class ParticipationRead(SQLModel):

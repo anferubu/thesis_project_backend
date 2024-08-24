@@ -27,7 +27,7 @@ class Feedback(Base, table=True):
     type: FeedbackType
     title: str
     content: str
-    status: FeedbackStatus = Field(default=FeedbackStatus.PENDING)
+    status: FeedbackStatus|None = Field(default=FeedbackStatus.PENDING)
     author_id: int = Field(foreign_key="profile.id")
 
     author: "Profile" = Relationship(back_populates="feedbacks")

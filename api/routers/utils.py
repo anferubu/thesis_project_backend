@@ -69,7 +69,7 @@ def get_motorcycle_club_info():
             for i, member in enumerate(team.members, 1):
                 members += f"{i}- {member.first_name} {member.last_name}: rol {member.user.role.name}, tel. {member.telephone}, nacimiento {member.birthdate}, motocicletas: "
                 for motorcycle in member.motorcycles:
-                    members += f"{motorcycle.brand.name} {motorcycle.model}, "
+                    members += f"marca {motorcycle.brand.name}, modelo {motorcycle.model}, "
                 members = members[:-2] + ".\n"
             # events information
             events = ""

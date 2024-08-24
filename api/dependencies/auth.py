@@ -43,5 +43,5 @@ async def get_current_user(session:DBSession, token:AccessToken) -> User:
 CurrentUser = Annotated[User, Depends(get_current_user)]
 LoginRequired = Depends(get_current_user)
 
-# Dependency: Get the username and password of a login form
+# Dependency: Get the username (email) and password of a login form
 LoginFormData = Annotated[OAuth2PasswordRequestForm, Depends()]

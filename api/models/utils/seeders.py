@@ -1208,16 +1208,16 @@ teams = [
 ]
 
 users = [
-    {"id": 1, "username": "andresperez", "password": get_password_hash("1password123"), "email": "andres.perez@example.com", "status": UserStatus.ACTIVE, "role_id": 1},
-    {"id": 2, "username": "camilarodriguez", "password": get_password_hash("2password123"), "email": "camila.rodriguez@example.com", "status": UserStatus.ACTIVE, "role_id": 3},
-    {"id": 3, "username": "juangomez", "password": get_password_hash("3password123"), "email": "juan.gomez@example.com", "status": UserStatus.INACTIVE, "role_id": 3},
-    {"id": 4, "username": "sofia.martinez", "password": get_password_hash("4password123"), "email": "sofia.martinez@example.com", "status": UserStatus.ACTIVE, "role_id": 2},
-    {"id": 5, "username": "miguel.torres", "password": get_password_hash("5password123"), "email": "miguel.torres@example.com", "status": UserStatus.ACTIVE, "role_id": 2},
-    {"id": 6, "username": "laura.ramirez", "password": get_password_hash("6password123"), "email": "laura.ramirez@example.com", "status": UserStatus.INACTIVE, "role_id": 3},
-    {"id": 7, "username": "carlossilva", "password": get_password_hash("7password123"), "email": "carlos.silva@example.com", "status": UserStatus.ACTIVE, "role_id": 3},
-    {"id": 8, "username": "isabela.mendoza", "password": get_password_hash("8password123"), "email": "isabela.mendoza@example.com", "status": UserStatus.ACTIVE, "role_id": 3},
-    {"id": 9, "username": "davidcastro", "password": get_password_hash("9password123"), "email": "david.castro@example.com", "status": UserStatus.INACTIVE, "role_id": 3},
-    {"id": 10, "username": "natalia.gomez", "password": get_password_hash("0password123"), "email": "natalia.gomez@example.com", "status": UserStatus.ACTIVE, "role_id": 3}
+    {"id": 1, "password": get_password_hash("1password123"), "email": "andres.perez@example.com", "status": UserStatus.ACTIVE, "role_id": 1},
+    {"id": 2, "password": get_password_hash("2password123"), "email": "camila.rodriguez@example.com", "status": UserStatus.ACTIVE, "role_id": 3},
+    {"id": 3, "password": get_password_hash("3password123"), "email": "juan.gomez@example.com", "status": UserStatus.INACTIVE, "role_id": 3},
+    {"id": 4, "password": get_password_hash("4password123"), "email": "sofia.martinez@example.com", "status": UserStatus.ACTIVE, "role_id": 2},
+    {"id": 5, "password": get_password_hash("5password123"), "email": "miguel.torres@example.com", "status": UserStatus.ACTIVE, "role_id": 2},
+    {"id": 6, "password": get_password_hash("6password123"), "email": "laura.ramirez@example.com", "status": UserStatus.INACTIVE, "role_id": 3},
+    {"id": 7, "password": get_password_hash("7password123"), "email": "carlos.silva@example.com", "status": UserStatus.ACTIVE, "role_id": 3},
+    {"id": 8, "password": get_password_hash("8password123"), "email": "isabela.mendoza@example.com", "status": UserStatus.ACTIVE, "role_id": 3},
+    {"id": 9, "password": get_password_hash("9password123"), "email": "david.castro@example.com", "status": UserStatus.INACTIVE, "role_id": 3},
+    {"id": 10, "password": get_password_hash("0password123"), "email": "natalia.gomez@example.com", "status": UserStatus.ACTIVE, "role_id": 3}
 ]
 
 members = [
@@ -1366,11 +1366,11 @@ feedback_answers = [
 
 
 DATABASE_URL = env.database_url
-engine = create_engine(DATABASE_URL)
+default_engine = create_engine(DATABASE_URL)
 
 
 
-def insert_records(records:list[dict], model_class:Type[SQLModel]):
+def insert_records(records:list[dict], model_class:Type[SQLModel], engine=default_engine):
     """Populate table with test data."""
 
     with Session(engine) as session:

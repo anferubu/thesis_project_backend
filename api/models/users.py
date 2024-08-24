@@ -37,9 +37,8 @@ class User(Base, table=True):
     This table contains the authentication information.
 
     Attributes:
-      - username (str): The username of the user (unique).
-      - password (str): The password of the user.
       - email (str): The email address of the user (unique).
+      - password (str): The password of the user.
       - status (UserStatus): The status of the user, e.g., active or inactive.
       - role_id (int): The ID of the role assigned to the user (default is 1).
 
@@ -48,11 +47,10 @@ class User(Base, table=True):
       - member: User [1:1] Profile relationship.
     """
 
-    username: str = Field(index=True, unique=True)
-    password: str
     email: str = Field(index=True, unique=True)
-    status: UserStatus = Field(default=UserStatus.INACTIVE)
-    role_id: int = Field(default=1, foreign_key="role.id")
+    password: str
+    status: UserStatus|None = Field(default=UserStatus.INACTIVE)
+    role_id: int|None = Field(default=1, foreign_key="role.id")
 
     role: "Role" = Relationship(back_populates="users")
     profile: "Profile" = Relationship(back_populates="user", sa_relationship_kwargs={"uselist": False})
