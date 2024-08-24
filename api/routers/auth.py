@@ -83,7 +83,7 @@ def register_user(
         subject="Por favor confirma tu email",
         template_name="confirmation_email.html",
         template_context={
-            "username": new_user.username,
+            "fullname": f"{new_user.profile.first_name} {new_user.profile.last_name}",
             "confirmation_link": confirmation_link,
         }
     )
@@ -160,7 +160,7 @@ def request_password_reset(
         subject="Solicitud de cambio de contraseña",
         template_name="password_reset_request_email.html",
         template_context={
-            "username": user.username,
+            "fullname": f"{user.profile.first_name} {user.profile.last_name}",
             "reset_link": reset_link,
         }
     )

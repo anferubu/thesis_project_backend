@@ -69,7 +69,7 @@ class Post(Base, table=True):
     title: str = Field(unique=True)
     slug: str = Field(index=True, unique=True)
     content: str
-    status: PostStatus = Field(default=PostStatus.UNPUBLISHED)
+    status: PostStatus|None = Field(default=PostStatus.UNPUBLISHED)
     thumbnail: FilePath|None = Field(default=None, sa_type=String)
     author_id: int = Field(foreign_key="profile.id")
 
@@ -98,7 +98,7 @@ class Comment(Base, table=True):
     """
 
     content: str
-    is_flagged: bool = Field(default=False)
+    is_flagged: bool|None = Field(default=False)
     author_id: int = Field(foreign_key="profile.id")
     post_id: int = Field(foreign_key="post.id")
     parent_id: int|None = Field(default=None, foreign_key="comment.id")

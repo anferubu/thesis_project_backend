@@ -60,7 +60,7 @@ class LocationBase(SQLModel):
 class LocationCreate(LocationBase):
     name: Annotated[str, Field(min_length=3, max_length=50)]
     type: LocationType
-    is_capital: bool = False
+    is_capital: bool|None = False
     department_id: int|None = None
 
 

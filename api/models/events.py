@@ -75,7 +75,7 @@ class Participation(Base, table=True):
       - UniqueConstraint on the combination of member_id and event_id.
     """
 
-    attended: bool = Field(default=False)
+    attended: bool|None = Field(default=False)
     member_id: int = Field(foreign_key="profile.id")
     event_id: int = Field(foreign_key="event.id")
 

@@ -26,7 +26,7 @@ class AgreementCreate(AgreementBase):
     description: Annotated[str|None, Field(max_length=2500)] = None
     start_date: date
     end_date: date
-    active: bool = True
+    active: bool|None = True
     company_id: int
 
 

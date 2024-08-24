@@ -50,7 +50,7 @@ class Agreement(Base, table=True):
     description: str|None = Field(default=None)
     start_date: date
     end_date: date
-    active: bool = Field(default=True)
+    active: bool|None = Field(default=True)
     company_id: int = Field(foreign_key="company.id")
 
     company: "Company" = Relationship(back_populates="agreements")

@@ -302,16 +302,6 @@ def get_profile_by_id(session:Session, profile_id:int) -> Profile|None:
 
 
 
-def get_user_by_username(session:Session, username:str) -> User|None:
-    """Get a user by its username."""
-
-    query = select(User).where(
-        func.lower(User.username) == username.lower(), User.deleted == False
-    )
-    return session.exec(query).first()
-
-
-
 def get_user_by_email(session:Session, email:str) -> User|None:
     """Get a user by its email."""
 

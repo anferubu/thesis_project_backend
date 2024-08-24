@@ -86,7 +86,6 @@ class ProfileRead(SQLModel):
 
 
 class UserCreate(SQLModel):
-    username: Annotated[str, Field(min_length=3, max_length=50)]
     email: EmailStr
     password: str
     role_id: int|None = None
@@ -97,13 +96,6 @@ class UserCreate(SQLModel):
     def validate_schema(cls, values:Any) -> Any:
         """Validates the creation/update schema data."""
 
-        # validate username
-        username = values.get("profile", {}).get("username")
-        if username and not re.match(r"^[A-Za-z0-9-_]+$", username):
-            raise ValueError(
-                "Username can only contain alphanumeric characters, hyphens" \
-                "(-), and underscores (_)."
-            )
         # validate password
         values = utils.check_password(values, "password")
         return values
@@ -117,7 +109,6 @@ class UserUpdate(SQLModel):
 
 class UserRead(SQLModel):
     id: int
-    username: str
     email: EmailStr
     role_id: int
     status: UserStatus
@@ -128,7 +119,6 @@ class UserRead(SQLModel):
 
 class UserList(SQLModel):
     id: int
-    username: str
     email: EmailStr
 
 

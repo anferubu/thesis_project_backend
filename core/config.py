@@ -8,6 +8,7 @@ files, templates, and routes.
 
 """
 
+import logging
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -76,3 +77,7 @@ app.mount(
 TEMPLATES_DIR = BASE_DIR / "templates"
 
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
+
+
+# Remove warnings from passlib module
+logging.getLogger('passlib').setLevel(logging.ERROR)

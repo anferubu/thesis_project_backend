@@ -23,6 +23,7 @@ class FeedbackCreate(FeedbackBase):
     type: FeedbackType
     title: Annotated[str, Field(min_length=3, max_length=100)]
     content: Annotated[str, Field(min_length=3, max_length=1000)]
+    status: FeedbackStatus|None = None
     author_id: int
 
 
@@ -30,6 +31,7 @@ class FeedbackUpdate(FeedbackBase):
     type: FeedbackType|None = None
     title: Annotated[str|None, Field(min_length=3, max_length=100)] = None
     content: Annotated[str|None, Field(min_length=3, max_length=1000)] = None
+    status: FeedbackStatus|None = None
 
 
 class FeedbackRead(SQLModel):
