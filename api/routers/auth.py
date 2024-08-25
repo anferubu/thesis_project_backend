@@ -12,6 +12,7 @@ from api.utils.security.authenticate import authenticate
 from api.utils.security.hashing import verify_password, get_password_hash
 from core.database import DBSession
 from core.email import send_email
+from core.secrets import env
 
 
 
@@ -76,7 +77,7 @@ def register_user(
         raise HTTPException(409, f"User {user.email} is already registered!")
     new_user = crud.create_user(session, data)
     confirmation_token = jwt.create_confirmation_token(new_user.email)
-    domain = f"{request.url.scheme}://{request.headers['host']}"
+    domain = env.confirmation_domain
     confirmation_link = f"{domain}/confirm-email/{confirmation_token}"
     background_tasks.add_task(
         send_email,
