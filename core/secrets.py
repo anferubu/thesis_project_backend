@@ -32,6 +32,7 @@ class EnvSettings(BaseSettings):
     gemini_api_key: str
 
     confirmation_domain: str
+    reset_domain: str
 
 
 env = EnvSettings(_env_file=".env")

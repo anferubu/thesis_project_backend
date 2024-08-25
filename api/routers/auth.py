@@ -5,8 +5,8 @@ from api.dependencies.auth import CurrentUser, LoginFormData
 from api.models.users import User
 from api.models.utils.enums import UserStatus
 from api.schemas.users import (
-    PasswordChange, Token, TokenRefreshRequest, UserCreate, UserRead,
-    RequestPasswordReset)
+    PasswordChange, PasswordReset, Token, TokenRefreshRequest, UserCreate,
+    UserRead, RequestPasswordReset)
 from api.utils.security import jwt
 from api.utils.security.authenticate import authenticate
 from api.utils.security.hashing import verify_password, get_password_hash
@@ -67,8 +67,7 @@ def read_user_me(current_user:CurrentUser) -> User:
 def register_user(
     session:DBSession,
     data:UserCreate,
-    background_tasks:BackgroundTasks,
-    request:Request
+    background_tasks:BackgroundTasks
 ) -> User:
     """Registers a new user and sends a confirmation email."""
 
@@ -142,8 +141,7 @@ def change_password(
 def request_password_reset(
     session:DBSession,
     request_password_reset:RequestPasswordReset,
-    background_tasks:BackgroundTasks,
-    request:Request
+    background_tasks:BackgroundTasks
 ) -> dict:
     """Requests a password reset and sends a reset link to the user's email.
     This endpoint generates a password reset token and sends a reset link to
@@ -154,7 +152,7 @@ def request_password_reset(
     if not user:
         raise HTTPException(404, f"User with email {email} not found")
     reset_token = jwt.create_reset_password_token(email)
-    domain = f"{request.url.scheme}://{request.headers['host']}"
+    domain = env.reset_domain
     reset_link = f"{domain}/reset-password/{reset_token}"
     background_tasks.add_task(
         send_email,
@@ -170,12 +168,9 @@ def request_password_reset(
 
 
 
-# Arreglar porque el password se está enviando como query param
-# GET formulario para establecer contraseña
-# POST restablecimiento de contraseña
 @auth.post("/reset-password/{token}")
 def reset_password(
-    session:DBSession, token:str, new_password:str
+    session:DBSession, token:str, new_password:PasswordReset
 ) -> dict:
     """Resets the user's password using the provided token. This endpoint
     decodes the password reset token, verifies it, and updates the user's
