@@ -135,6 +135,15 @@ class PasswordChange(SQLModel):
         return values
 
 
+class PasswordReset(SQLModel):
+    new_password: str
+
+    @model_validator(mode="before")
+    def validate_schema(cls, values:Any) -> Any:
+        values = utils.check_password(values, "new_password")
+        return values
+
+
 class RequestPasswordReset(SQLModel):
     email: EmailStr
 
