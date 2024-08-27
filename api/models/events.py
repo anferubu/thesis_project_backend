@@ -50,8 +50,8 @@ class Event(Base, table=True):
     organizer: "Profile" = Relationship(back_populates="organized_events")
     team: "Team" = Relationship(back_populates="events")
     path: "Path" = Relationship(back_populates="events")
-    reviews: list["Review"] = Relationship(back_populates="event")
-    members: list["Participation"] = Relationship(back_populates="event")
+    reviews: list["Review"] = Relationship(back_populates="event", cascade_delete=True)
+    members: list["Participation"] = Relationship(back_populates="event", cascade_delete=True)
 
 
 

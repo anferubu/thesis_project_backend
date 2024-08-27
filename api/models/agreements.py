@@ -79,5 +79,5 @@ class Company(Base, table=True):
     contact_address: str|None = Field(default=None)
     location_id: int = Field(foreign_key="location.id")
 
-    agreements: list[Agreement] = Relationship(back_populates="company")
+    agreements: list[Agreement] = Relationship(back_populates="company", cascade_delete=True)
     location: "Location" = Relationship(back_populates="companies")

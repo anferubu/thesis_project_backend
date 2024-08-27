@@ -31,7 +31,7 @@ class Feedback(Base, table=True):
     author_id: int = Field(foreign_key="profile.id")
 
     author: "Profile" = Relationship(back_populates="feedbacks")
-    answer: "FeedbackAnswer" = Relationship(back_populates="feedback", sa_relationship_kwargs={"uselist": False})
+    answer: "FeedbackAnswer" = Relationship(back_populates="feedback", sa_relationship_kwargs={"uselist": False}, cascade_delete=True)
 
 
 

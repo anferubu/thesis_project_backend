@@ -75,7 +75,7 @@ class Post(Base, table=True):
 
     author: "Profile" = Relationship(back_populates="posts")
     tags: list[Tag] = Relationship(back_populates="posts", link_model=PostTag)
-    comments: list["Comment"] = Relationship(back_populates="post")
+    comments: list["Comment"] = Relationship(back_populates="post", cascade_delete=True)
 
 
 
@@ -105,7 +105,7 @@ class Comment(Base, table=True):
 
     author: "Profile" = Relationship(back_populates="comments")
     post: Post = Relationship(back_populates="comments")
-    reactions: list["CommentReaction"] = Relationship(back_populates="comment")
+    reactions: list["CommentReaction"] = Relationship(back_populates="comment", cascade_delete=True)
     parent: Optional["Comment"] = Relationship(back_populates="replies", sa_relationship_kwargs={"remote_side": "Comment.id"})
     replies: list["Comment"] = Relationship(back_populates="parent")
 
