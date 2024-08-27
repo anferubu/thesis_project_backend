@@ -164,6 +164,7 @@ def request_password_reset(
             "reset_link": reset_link,
         }
     )
+    print("RESET TOKEN", reset_token)
     return {"detail": "Password reset link sent!"}
 
 
@@ -183,7 +184,7 @@ def reset_password(
     user = crud.get_user_by_email(session=session, email=email)
     if not user:
         raise HTTPException(404, f"User with email {email} not found")
-    hashed_password = get_password_hash(new_password)
+    hashed_password = get_password_hash(new_password.new_password)
     user.password = hashed_password
     session.add(user)
     session.commit()
