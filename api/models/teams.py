@@ -30,9 +30,9 @@ class Team(Base, table=True):
     location_id: int = Field(foreign_key="location.id")
 
     location: "Location" = Relationship(back_populates="team")
-    members: list["Profile"] = Relationship(back_populates="team")
+    members: list["Profile"] = Relationship(back_populates="team", cascade_delete=True)
     agreements: list["Agreement"] = Relationship(back_populates="teams", link_model=AgreementTeam)
-    events: list["Event"] = Relationship(back_populates="team")
+    events: list["Event"] = Relationship(back_populates="team", cascade_delete=True)
 
 
 

@@ -28,7 +28,7 @@ class Role(Base, table=True):
     name: str = Field(index=True, unique=True)
     description: str|None = Field(default=None)
 
-    users: list["User"] = Relationship(back_populates="role")
+    users: list["User"] = Relationship(back_populates="role", cascade_delete=True)
 
 
 
@@ -53,7 +53,7 @@ class User(Base, table=True):
     role_id: int|None = Field(default=1, foreign_key="role.id")
 
     role: "Role" = Relationship(back_populates="users")
-    profile: "Profile" = Relationship(back_populates="user", sa_relationship_kwargs={"uselist": False})
+    profile: "Profile" = Relationship(back_populates="user", sa_relationship_kwargs={"uselist": False}, cascade_delete=True)
 
 
 
@@ -105,15 +105,15 @@ class Profile(Base, table=True):
 
     user: User = Relationship(back_populates="profile", sa_relationship_kwargs={"uselist": False})
     team: "Team" = Relationship(back_populates="members")
-    motorcycles: list["Motorcycle"] = Relationship(back_populates="owner")
-    attended_events: list["Participation"] = Relationship(back_populates="member")
-    organized_events: list["Event"] = Relationship(back_populates="organizer")
-    reviews: list["Review"] = Relationship(back_populates="author")
-    posts: list["Post"] = Relationship(back_populates="author")
-    comments: list["Comment"] = Relationship(back_populates="author")
-    comment_reactions: list["CommentReaction"] = Relationship(back_populates="author")
-    feedbacks: list["Feedback"] = Relationship(back_populates="author")
-    feedback_answers: list["FeedbackAnswer"] = Relationship(back_populates="author")
+    motorcycles: list["Motorcycle"] = Relationship(back_populates="owner", cascade_delete=True)
+    attended_events: list["Participation"] = Relationship(back_populates="member", cascade_delete=True)
+    organized_events: list["Event"] = Relationship(back_populates="organizer", cascade_delete=True)
+    reviews: list["Review"] = Relationship(back_populates="author", cascade_delete=True)
+    posts: list["Post"] = Relationship(back_populates="author", cascade_delete=True)
+    comments: list["Comment"] = Relationship(back_populates="author", cascade_delete=True)
+    comment_reactions: list["CommentReaction"] = Relationship(back_populates="author", cascade_delete=True)
+    feedbacks: list["Feedback"] = Relationship(back_populates="author", cascade_delete=True)
+    feedback_answers: list["FeedbackAnswer"] = Relationship(back_populates="author", cascade_delete=True)
 
 
 
@@ -155,4 +155,4 @@ class Brand(Base, table=True):
 
     name: str = Field(index=True, unique=True)
 
-    motorcycles: list[Motorcycle] = Relationship(back_populates="brand")
+    motorcycles: list[Motorcycle] = Relationship(back_populates="brand", cascade_delete=True)
