@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from api.crud.utils import apply_filters, apply_sorting
@@ -55,6 +56,14 @@ def list_teams(
     if limit is not None:
         query = query.limit(limit)
     return session.exec(query).all()
+
+
+
+def count_teams(session:Session, filter:dict[str, any]|None=None) -> int:
+    query = select(func.count(Team.id)).where(Team.deleted == False)
+    if filter:
+        query = apply_filters(query, Team, filter)
+    return session.exec(query).one()
 
 
 
@@ -141,6 +150,14 @@ def list_locations(
     if limit is not None:
         query = query.limit(limit)
     return session.exec(query).all()
+
+
+
+def count_locations(session:Session, filter:dict[str, any]|None=None) -> int:
+    query = select(func.count(Location.id)).where(Location.deleted == False)
+    if filter:
+        query = apply_filters(query, Location, filter)
+    return session.exec(query).one()
 
 
 

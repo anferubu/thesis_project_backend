@@ -65,6 +65,14 @@ def list_roles(
 
 
 
+def count_roles(session:Session, filter:dict[str, any]|None=None) -> int:
+    query = select(func.count(Role.id)).where(Role.deleted == False)
+    if filter:
+        query = apply_filters(query, Role, filter)
+    return session.exec(query).one()
+
+
+
 def update_role(session:Session, role_id:int, data:RoleUpdate) -> Role|None:
     """Update a role."""
 
@@ -150,6 +158,14 @@ def list_motorcycles(
 
 
 
+def count_motorcycles(session:Session, filter:dict[str, any]|None=None) -> int:
+    query = select(func.count(Motorcycle.id)).where(Motorcycle.deleted == False)
+    if filter:
+        query = apply_filters(query, Motorcycle, filter)
+    return session.exec(query).one()
+
+
+
 def update_motorcycle(
         session:Session, motorcycle_id:int, data:MotorcycleUpdate
 ) -> Motorcycle|None:
@@ -232,6 +248,14 @@ def list_brands(
     if limit is not None:
         query = query.limit(limit)
     return session.exec(query).all()
+
+
+
+def count_brands(session:Session, filter:dict[str, any]|None=None) -> int:
+    query = select(func.count(Brand.id)).where(Brand.deleted == False)
+    if filter:
+        query = apply_filters(query, Brand, filter)
+    return session.exec(query).one()
 
 
 
@@ -329,6 +353,14 @@ def list_users(
     if limit is not None:
         query = query.limit(limit)
     return session.exec(query).all()
+
+
+
+def count_users(session:Session, filter:dict[str, any]|None=None) -> int:
+    query = select(func.count(User.id)).where(User.deleted == False)
+    if filter:
+        query = apply_filters(query, User, filter)
+    return session.exec(query).one()
 
 
 

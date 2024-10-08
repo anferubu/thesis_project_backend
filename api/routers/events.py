@@ -25,26 +25,44 @@ event = APIRouter()
 
 # Event endpoints
 
-@event.get("/events", response_model=list[EventList])
+@event.get("/events", response_model=dict)
 def list_events(
     session:Session,
     skip:int=0,
     limit:int=100,
     sort:str|None=None,
     filter:str|None=None
-) -> list[Event]:
+) -> dict:
     """List events."""
 
     sort_dict = parse_sort_param(sort) if sort else None
     filter_dict = parse_filter_param(filter) if filter else None
 
-    return crud.list_events(
+    total_records = crud.count_events(session, filter_dict)
+    current_page = (skip // limit) + 1 if limit else 1
+    total_pages = (total_records + limit - 1) // limit if limit else 1
+    next_page = current_page + 1 if current_page < total_pages else None
+    prev_page = current_page - 1 if current_page > 1 else None
+
+    events = crud.list_events(
         session=session,
         skip=skip,
         limit=limit,
         sort=sort_dict,
         filter=filter_dict
     )
+
+    return {
+        "data": events,
+        "pagination": {
+            "total_records": total_records,
+            "per_page": limit,
+            "current_page": current_page,
+            "total_pages": total_pages,
+            "next_page": next_page,
+            "prev_page": prev_page
+        }
+    }
 
 
 
@@ -467,26 +485,44 @@ def delete_review(
 path = APIRouter()
 
 
-@path.get("/paths", response_model=list[PathList])
+@path.get("/paths", response_model=dict)
 def list_paths(
     session:Session,
     skip:int=0,
     limit:int=100,
     sort:str|None=None,
     filter:str|None=None
-) -> list[Path]:
+) -> dict:
     """List paths."""
 
     sort_dict = parse_sort_param(sort) if sort else None
     filter_dict = parse_filter_param(filter) if filter else None
 
-    return crud.list_paths(
+    total_records = crud.count_paths(session, filter_dict)
+    current_page = (skip // limit) + 1 if limit else 1
+    total_pages = (total_records + limit - 1) // limit if limit else 1
+    next_page = current_page + 1 if current_page < total_pages else None
+    prev_page = current_page - 1 if current_page > 1 else None
+
+    paths = crud.list_paths(
         session=session,
         skip=skip,
         limit=limit,
         sort=sort_dict,
         filter=filter_dict
     )
+
+    return {
+        "data": paths,
+        "pagination": {
+            "total_records": total_records,
+            "per_page": limit,
+            "current_page": current_page,
+            "total_pages": total_pages,
+            "next_page": next_page,
+            "prev_page": prev_page
+        }
+    }
 
 
 

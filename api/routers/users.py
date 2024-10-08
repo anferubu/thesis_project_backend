@@ -23,26 +23,44 @@ role = APIRouter()
 
 # Role endpoints
 
-@role.get("/roles", response_model=list[RoleList])
+@role.get("/roles", response_model=dict)
 def list_roles(
     session:Session,
     skip:int=0,
     limit:int=100,
     sort:str|None=None,
     filter:str|None=None
-) -> list[Role]:
+) -> dict:
     """List roles."""
 
     sort_dict = parse_sort_param(sort) if sort else None
     filter_dict = parse_filter_param(filter) if filter else None
 
-    return crud.list_roles(
+    total_records = crud.count_roles(session, filter_dict)
+    current_page = (skip // limit) + 1 if limit else 1
+    total_pages = (total_records + limit - 1) // limit if limit else 1
+    next_page = current_page + 1 if current_page < total_pages else None
+    prev_page = current_page - 1 if current_page > 1 else None
+
+    roles = crud.list_roles(
         session=session,
         skip=skip,
         limit=limit,
         sort=sort_dict,
         filter=filter_dict
     )
+
+    return {
+        "data": roles,
+        "pagination": {
+            "total_records": total_records,
+            "per_page": limit,
+            "current_page": current_page,
+            "total_pages": total_pages,
+            "next_page": next_page,
+            "prev_page": prev_page
+        }
+    }
 
 
 
@@ -110,26 +128,44 @@ def list_role_users(session:Session, role_id:int):
 motorcycle = APIRouter()
 
 
-@motorcycle.get("/motorcycles", response_model=list[MotorcycleList])
+@motorcycle.get("/motorcycles", response_model=dict)
 def list_motorcycles(
     session:Session,
     skip:int=0,
     limit:int=100,
     sort:str|None=None,
     filter:str|None=None
-) -> list[Motorcycle]:
+) -> dict:
     """List motorcycles."""
 
     sort_dict = parse_sort_param(sort) if sort else None
     filter_dict = parse_filter_param(filter) if filter else None
 
-    return crud.list_motorcycles(
+    total_records = crud.count_motorcycles(session, filter_dict)
+    current_page = (skip // limit) + 1 if limit else 1
+    total_pages = (total_records + limit - 1) // limit if limit else 1
+    next_page = current_page + 1 if current_page < total_pages else None
+    prev_page = current_page - 1 if current_page > 1 else None
+
+    motorcycles = crud.list_motorcycles(
         session=session,
         skip=skip,
         limit=limit,
         sort=sort_dict,
         filter=filter_dict
     )
+
+    return {
+        "data": motorcycles,
+        "pagination": {
+            "total_records": total_records,
+            "per_page": limit,
+            "current_page": current_page,
+            "total_pages": total_pages,
+            "next_page": next_page,
+            "prev_page": prev_page
+        }
+    }
 
 
 
@@ -223,26 +259,44 @@ def get_motorcycle_owner(session:Session, motorcycle_id:int):
 brand = APIRouter()
 
 
-@brand.get("/brands", response_model=list[BrandList])
+@brand.get("/brands", response_model=dict)
 def list_brands(
     session:Session,
     skip:int=0,
     limit:int=100,
     sort:str|None=None,
     filter:str|None=None
-) -> list[Brand]:
+) -> dict:
     """List brands."""
 
     sort_dict = parse_sort_param(sort) if sort else None
     filter_dict = parse_filter_param(filter) if filter else None
 
-    return crud.list_brands(
+    total_records = crud.count_brands(session, filter_dict)
+    current_page = (skip // limit) + 1 if limit else 1
+    total_pages = (total_records + limit - 1) // limit if limit else 1
+    next_page = current_page + 1 if current_page < total_pages else None
+    prev_page = current_page - 1 if current_page > 1 else None
+
+    brands = crud.list_brands(
         session=session,
         skip=skip,
         limit=limit,
         sort=sort_dict,
         filter=filter_dict
     )
+
+    return {
+        "data": brands,
+        "pagination": {
+            "total_records": total_records,
+            "per_page": limit,
+            "current_page": current_page,
+            "total_pages": total_pages,
+            "next_page": next_page,
+            "prev_page": prev_page
+        }
+    }
 
 
 
@@ -310,26 +364,44 @@ def list_brand_motorcycles(session:Session, brand_id:int):
 user = APIRouter()
 
 
-@user.get("/users", response_model=list[UserList])
+@user.get("/users", response_model=dict)
 def list_users(
     session:Session,
     skip:int=0,
     limit:int=100,
     sort:str|None=None,
     filter:str|None=None
-) -> list[User]:
+) -> dict:
     """List users."""
 
     sort_dict = parse_sort_param(sort) if sort else None
     filter_dict = parse_filter_param(filter) if filter else None
 
-    return crud.list_users(
+    total_records = crud.count_users(session, filter_dict)
+    current_page = (skip // limit) + 1 if limit else 1
+    total_pages = (total_records + limit - 1) // limit if limit else 1
+    next_page = current_page + 1 if current_page < total_pages else None
+    prev_page = current_page - 1 if current_page > 1 else None
+
+    users = crud.list_users(
         session=session,
         skip=skip,
         limit=limit,
         sort=sort_dict,
         filter=filter_dict
     )
+
+    return {
+        "data": users,
+        "pagination": {
+            "total_records": total_records,
+            "per_page": limit,
+            "current_page": current_page,
+            "total_pages": total_pages,
+            "next_page": next_page,
+            "prev_page": prev_page
+        }
+    }
 
 
 

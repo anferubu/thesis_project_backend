@@ -19,26 +19,44 @@ feedback = APIRouter()
 
 # Feedback endpoints
 
-@feedback.get("/feedbacks", response_model=list[FeedbackList])
+@feedback.get("/feedbacks", response_model=dict)
 def list_feedbacks(
     session:Session,
     skip:int=0,
     limit:int=100,
     sort:str|None=None,
     filter:str|None=None
-) -> list[Feedback]:
+) -> dict:
     """List feedbacks."""
 
     sort_dict = parse_sort_param(sort) if sort else None
     filter_dict = parse_filter_param(filter) if filter else None
 
-    return crud.list_feedbacks(
+    total_records = crud.count_feedbacks(session, filter_dict)
+    current_page = (skip // limit) + 1 if limit else 1
+    total_pages = (total_records + limit - 1) // limit if limit else 1
+    next_page = current_page + 1 if current_page < total_pages else None
+    prev_page = current_page - 1 if current_page > 1 else None
+
+    feedbacks = crud.list_feedbacks(
         session=session,
         skip=skip,
         limit=limit,
         sort=sort_dict,
         filter=filter_dict
     )
+
+    return {
+        "data": feedbacks,
+        "pagination": {
+            "total_records": total_records,
+            "per_page": limit,
+            "current_page": current_page,
+            "total_pages": total_pages,
+            "next_page": next_page,
+            "prev_page": prev_page
+        }
+    }
 
 
 
@@ -120,26 +138,44 @@ def get_feedback_answer(session:Session, feedback_id:int):
 answer = APIRouter()
 
 
-@answer.get("/feedback_answers", response_model=list[FeedbackAnswerList])
+@answer.get("/feedback_answers", response_model=dict)
 def list_feedback_answers(
     session:Session,
     skip:int=0,
     limit:int=100,
     sort:str|None=None,
     filter:str|None=None
-) -> list[FeedbackAnswer]:
+) -> dict:
     """List feedback answers."""
 
     sort_dict = parse_sort_param(sort) if sort else None
     filter_dict = parse_filter_param(filter) if filter else None
 
-    return crud.list_feedback_answers(
+    total_records = crud.count_feedback_answers(session, filter_dict)
+    current_page = (skip // limit) + 1 if limit else 1
+    total_pages = (total_records + limit - 1) // limit if limit else 1
+    next_page = current_page + 1 if current_page < total_pages else None
+    prev_page = current_page - 1 if current_page > 1 else None
+
+    feedback_answers = crud.list_feedback_answers(
         session=session,
         skip=skip,
         limit=limit,
         sort=sort_dict,
         filter=filter_dict
     )
+
+    return {
+        "data": feedback_answers,
+        "pagination": {
+            "total_records": total_records,
+            "per_page": limit,
+            "current_page": current_page,
+            "total_pages": total_pages,
+            "next_page": next_page,
+            "prev_page": prev_page
+        }
+    }
 
 
 

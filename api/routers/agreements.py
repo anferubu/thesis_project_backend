@@ -21,8 +21,7 @@ agreement = APIRouter()
 
 @agreement.get(
     "/agreements",
-    response_model=list[AgreementList],
-    dependencies=[roles_required(1)]
+    response_model=dict,
 )
 def list_agreements(
     session:Session,
@@ -30,19 +29,37 @@ def list_agreements(
     limit:int=100,
     sort:str|None=None,
     filter:str|None=None
-) -> list[Agreement]:
+) -> dict:
     """List agreements."""
 
     sort_dict = parse_sort_param(sort) if sort else None
     filter_dict = parse_filter_param(filter) if filter else None
 
-    return crud.list_agreements(
+    total_records = crud.count_agreements(session, filter_dict)
+    current_page = (skip // limit) + 1 if limit else 1
+    total_pages = (total_records + limit - 1) // limit if limit else 1
+    next_page = current_page + 1 if current_page < total_pages else None
+    prev_page = current_page - 1 if current_page > 1 else None
+
+    agreements = crud.list_agreements(
         session=session,
         skip=skip,
         limit=limit,
         sort=sort_dict,
         filter=filter_dict
     )
+
+    return {
+        "data": agreements,
+        "pagination": {
+            "total_records": total_records,
+            "per_page": limit,
+            "current_page": current_page,
+            "total_pages": total_pages,
+            "next_page": next_page,
+            "prev_page": prev_page
+        }
+    }
 
 
 
@@ -162,26 +179,44 @@ def remove_team_from_agreement(session:Session, agreement_id:int, team_id:int):
 company = APIRouter()
 
 
-@company.get("/companies", response_model=list[CompanyList])
+@company.get("/companies", response_model=dict)
 def list_companies(
     session:Session,
     skip:int=0,
     limit:int=100,
     sort:str|None=None,
     filter:str|None=None
-) -> list[Company]:
+) -> dict:
     """List companies."""
 
     sort_dict = parse_sort_param(sort) if sort else None
     filter_dict = parse_filter_param(filter) if filter else None
 
-    return crud.list_companies(
+    total_records = crud.count_companies(session, filter_dict)
+    current_page = (skip // limit) + 1 if limit else 1
+    total_pages = (total_records + limit - 1) // limit if limit else 1
+    next_page = current_page + 1 if current_page < total_pages else None
+    prev_page = current_page - 1 if current_page > 1 else None
+
+    companies = crud.list_companies(
         session=session,
         skip=skip,
         limit=limit,
         sort=sort_dict,
         filter=filter_dict
     )
+
+    return {
+        "data": companies,
+        "pagination": {
+            "total_records": total_records,
+            "per_page": limit,
+            "current_page": current_page,
+            "total_pages": total_pages,
+            "next_page": next_page,
+            "prev_page": prev_page
+        }
+    }
 
 
 

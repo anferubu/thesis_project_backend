@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from api.crud.utils import apply_filters, apply_sorting
@@ -47,6 +48,14 @@ def list_feedbacks(
     if limit is not None:
         query = query.limit(limit)
     return session.exec(query).all()
+
+
+
+def count_feedbacks(session:Session, filter:dict[str, any]|None=None) -> int:
+    query = select(func.count(Feedback.id)).where(Feedback.deleted == False)
+    if filter:
+        query = apply_filters(query, Feedback, filter)
+    return session.exec(query).one()
 
 
 
@@ -126,6 +135,14 @@ def list_feedback_answers(
     if limit is not None:
         query = query.limit(limit)
     return session.exec(query).all()
+
+
+
+def count_feedback_answers(session:Session, filter:dict[str, any]|None=None) -> int:
+    query = select(func.count(FeedbackAnswer.id)).where(FeedbackAnswer.deleted == False)
+    if filter:
+        query = apply_filters(query, FeedbackAnswer, filter)
+    return session.exec(query).one()
 
 
 
