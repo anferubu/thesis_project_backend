@@ -64,5 +64,5 @@ def apply_filters(query, model: Type, filters:dict[str, Any]):
         if value == "item exist":
             query = query.where(getattr(model, field).is_not(None))
         else:
-            query = query.where(getattr(model, field) == value)
+            query = query.where(getattr(model, field).ilike(f"%{value}%"))
     return query

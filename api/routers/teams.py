@@ -20,26 +20,44 @@ team = APIRouter()
 
 # Team endpoints
 
-@team.get("/teams", response_model=list[TeamList])
+@team.get("/teams", response_model=dict)
 def list_teams(
     session:Session,
     skip:int=0,
     limit:int=100,
     sort:str|None=None,
     filter:str|None=None
-) -> list[Team]:
+) -> dict:
     """List teams."""
 
     sort_dict = parse_sort_param(sort) if sort else None
     filter_dict = parse_filter_param(filter) if filter else None
 
-    return crud.list_teams(
+    total_records = crud.count_teams(session, filter_dict)
+    current_page = (skip // limit) + 1 if limit else 1
+    total_pages = (total_records + limit - 1) // limit if limit else 1
+    next_page = current_page + 1 if current_page < total_pages else None
+    prev_page = current_page - 1 if current_page > 1 else None
+
+    teams = crud.list_teams(
         session=session,
         skip=skip,
         limit=limit,
         sort=sort_dict,
         filter=filter_dict
     )
+
+    return {
+        "data": teams,
+        "pagination": {
+            "total_records": total_records,
+            "per_page": limit,
+            "current_page": current_page,
+            "total_pages": total_pages,
+            "next_page": next_page,
+            "prev_page": prev_page
+        }
+    }
 
 
 
@@ -142,26 +160,44 @@ def list_team_agreements(session:Session, team_id:int):
 location = APIRouter()
 
 
-@location.get("/locations", response_model=list[LocationList])
+@location.get("/locations", response_model=dict)
 def list_locations(
     session:Session,
     skip:int=0,
     limit:int=100,
     sort:str|None=None,
     filter:str|None=None
-) -> list[Location]:
+) -> dict:
     """List locations."""
 
     sort_dict = parse_sort_param(sort) if sort else None
     filter_dict = parse_filter_param(filter) if filter else None
 
-    return crud.list_locations(
+    total_records = crud.count_locations(session, filter_dict)
+    current_page = (skip // limit) + 1 if limit else 1
+    total_pages = (total_records + limit - 1) // limit if limit else 1
+    next_page = current_page + 1 if current_page < total_pages else None
+    prev_page = current_page - 1 if current_page > 1 else None
+
+    locations = crud.list_locations(
         session=session,
         skip=skip,
         limit=limit,
         sort=sort_dict,
         filter=filter_dict
     )
+
+    return {
+        "data": locations,
+        "pagination": {
+            "total_records": total_records,
+            "per_page": limit,
+            "current_page": current_page,
+            "total_pages": total_pages,
+            "next_page": next_page,
+            "prev_page": prev_page
+        }
+    }
 
 
 

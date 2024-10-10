@@ -62,6 +62,14 @@ def list_events(
 
 
 
+def count_events(session:Session, filter:dict[str, any]|None=None) -> int:
+    query = select(func.count(Event.id)).where(Event.deleted == False)
+    if filter:
+        query = apply_filters(query, Event, filter)
+    return session.exec(query).one()
+
+
+
 def update_event(
         session:Session, event_id:int, data:EventUpdate
 ) -> Event|None:
@@ -261,6 +269,14 @@ def list_paths(
     if limit is not None:
         query = query.limit(limit)
     return session.exec(query).all()
+
+
+
+def count_paths(session:Session, filter:dict[str, any]|None=None) -> int:
+    query = select(func.count(Path.id)).where(Path.deleted == False)
+    if filter:
+        query = apply_filters(query, Path, filter)
+    return session.exec(query).one()
 
 
 

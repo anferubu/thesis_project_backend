@@ -62,6 +62,14 @@ def list_agreements(
 
 
 
+def count_agreements(session:Session, filter:dict[str, any]|None=None) -> int:
+    query = select(func.count(Agreement.id)).where(Agreement.deleted == False)
+    if filter:
+        query = apply_filters(query, Agreement, filter)
+    return session.exec(query).one()
+
+
+
 def update_agreement(
         session:Session, agreement_id:int, data:AgreementUpdate
 ) -> Agreement|None:
@@ -177,6 +185,14 @@ def list_companies(
     if limit is not None:
         query = query.limit(limit)
     return session.exec(query).all()
+
+
+
+def count_companies(session:Session, filter:dict[str, any]|None=None) -> int:
+    query = select(func.count(Company.id)).where(Company.deleted == False)
+    if filter:
+        query = apply_filters(query, Company, filter)
+    return session.exec(query).one()
 
 
 

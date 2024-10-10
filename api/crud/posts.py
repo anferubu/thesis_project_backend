@@ -62,6 +62,14 @@ def list_tags(
 
 
 
+def count_tags(session:Session, filter:dict[str, any]|None=None) -> int:
+    query = select(func.count(Tag.id)).where(Tag.deleted == False)
+    if filter:
+        query = apply_filters(query, Tag, filter)
+    return session.exec(query).one()
+
+
+
 def update_tag(
         session:Session, tag_id:int, data:TagUpdate
 ) -> Tag|None:
@@ -148,6 +156,14 @@ def list_posts(
 
 
 
+def count_posts(session:Session, filter:dict[str, any]|None=None) -> int:
+    query = select(func.count(Post.id)).where(Post.deleted == False)
+    if filter:
+        query = apply_filters(query, Post, filter)
+    return session.exec(query).one()
+
+
+
 def update_post(
         session:Session, post_id:int, data:PostUpdate
 ) -> Post|None:
@@ -220,6 +236,14 @@ def list_comments(
     if limit is not None:
         query = query.limit(limit)
     return session.exec(query).all()
+
+
+
+def count_comments(session:Session, filter:dict[str, any]|None=None) -> int:
+    query = select(func.count(Comment.id)).where(Comment.deleted == False)
+    if filter:
+        query = apply_filters(query, Comment, filter)
+    return session.exec(query).one()
 
 
 
@@ -299,6 +323,14 @@ def list_reactions(
     if limit is not None:
         query = query.limit(limit)
     return session.exec(query).all()
+
+
+
+def count_comment_reactions(session:Session, filter:dict[str, any]|None=None) -> int:
+    query = select(func.count(CommentReaction.id)).where(CommentReaction.deleted == False)
+    if filter:
+        query = apply_filters(query, CommentReaction, filter)
+    return session.exec(query).one()
 
 
 
