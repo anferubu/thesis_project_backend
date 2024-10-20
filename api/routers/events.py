@@ -263,7 +263,7 @@ def get_participation(
     """Get a participation for a user in an event."""
 
     user = get_user_by_id(session, user_id)
-    participation = crud.get_participation(session, event_id, user.profile.id)
+    participation = crud.get_participation(session, user.profile.id, event_id)
     if not participation:
         raise HTTPException(
             404, f"User #{user_id} not participate in event #{event_id}!"
@@ -309,7 +309,7 @@ def remove_user_from_event(
         raise HTTPException(404, f"Event #{event_id} not found!")
     if not user:
         raise HTTPException(404, f"User #{user_id} not found!")
-    participation = crud.get_participation(session, event_id, user.profile.id)
+    participation = crud.get_participation(session, user.profile.id, event_id)
     if participation:
         crud.delete_participation(session, participation, hard)
     else:
