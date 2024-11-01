@@ -187,10 +187,10 @@ def create_feedback_answer(
 ) -> FeedbackAnswer:
     """Create a new feedback answer."""
 
-    feedback = crud.get_feedback_by_id(session, data.feedback_id)
     author = get_user_by_id(session, data.author_id)
-    if feedback:
-        raise HTTPException(409, f"La consulta ya ha sido resuelta por el usuario #{feedback.author_id}")
+    answer = crud.list_feedback_answers(session, filter={"feedback_id": data.feedback_id, "author_id": data.author_id})
+    if answer:
+        raise HTTPException(409, f"La consulta ya ha sido resuelta por el usuario #{answer.author_id}")
     if not author:
         raise HTTPException(404, f"User #{data.author_id} not found!")
     data.author_id = author.profile.id
