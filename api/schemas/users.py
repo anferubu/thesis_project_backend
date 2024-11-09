@@ -201,8 +201,8 @@ class MotorcycleCreate(MotorcycleBase):
     def validate_license_plate(cls, value:str) -> str:
         """Validates the field 'license_plate' in the creation schema."""
 
-        if not re.match(r'^[A-Z]{3}\d{3}$', value):
-            raise ValueError("license_plate must be in the format 'ABC123'.")
+        if not re.match(r'^[A-Z]{3}\d{2}[A-Z]$', value):
+            raise ValueError("license_plate must be in the format 'ABC12D'.")
         return value
 
 
