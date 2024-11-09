@@ -442,6 +442,16 @@ def delete_user(
 
 
 
+@user.get("/users/{user_id}/motorcycles", response_model=list[MotorcycleRead])
+def get_user_motorcycles(session:Session, user_id:int) -> Motorcycle:
+    """Get the user's motorcycles by his ID."""
+
+    user = crud.get_user_by_id(session, user_id)
+    if not user:
+        raise HTTPException(404, f"User #{user_id} not found!")
+    return user.profile.motorcycles
+
+
 # Membershipt card endpoints
 
 membership = APIRouter()

@@ -5,7 +5,7 @@ from api.crud.users import get_user_by_id
 from api.crud.utils import parse_filter_param, parse_sort_param
 from api.models.posts import Post, Tag, Comment, CommentReaction
 from api.schemas.posts import (
-    PostCreate, PostRead, PostUpdate, PostList, TagCreate, TagRead, TagUpdate,
+    PostCreate, PostRead, PostUpdate, PostList, PaginatedPosts, TagCreate, TagRead, TagUpdate,
     TagList, CommentCreate, CommentRead, CommentUpdate, CommentList,
     CommentReactionCreate, CommentReactionRead, CommentReactionUpdate,
     CommentReactionList)
@@ -126,7 +126,7 @@ def list_tag_posts(session:Session, tag_id:int):
 
 post = APIRouter()
 
-@post.get("/posts", response_model=dict)
+@post.get("/posts", response_model=PaginatedPosts)
 def list_posts(
     session:Session,
     skip:int=0,
@@ -178,7 +178,9 @@ def create_post(session:Session, data:PostCreate) -> Post:
     if not author:
         raise HTTPException(404, f"User #{data.author_id} not found!")
     data.author_id = author.profile.id
-    return crud.create_post(session, data)
+    new_post = crud.create_post(session, data)
+    print("TAG 3", new_post.tags)
+    return new_post
 
 
 

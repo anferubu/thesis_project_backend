@@ -74,6 +74,7 @@ class PostCreate(PostBase):
     content: Annotated[str, Field(max_length=2500)]
     status: PostStatus|None = None
     thumbnail: FilePath|None = None
+    tag_ids: list[int] = []
     author_id: int
 
 
@@ -103,6 +104,11 @@ class PostList(SQLModel):
     tags: list[TagList]
     status: str
     author_id: int
+
+
+class PaginatedPosts(SQLModel):
+    data: list[PostRead]
+    pagination: dict
 
 
 

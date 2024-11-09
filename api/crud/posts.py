@@ -1,4 +1,6 @@
+from fastapi import HTTPException
 from sqlalchemy import func
+from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
 from api.crud.utils import apply_filters, apply_sorting
@@ -19,6 +21,17 @@ def create_tag(session:Session, data:TagCreate) -> Tag:
     session.commit()
     session.refresh(new_tag)
     return new_tag
+
+
+
+def get_tags_by_ids(session: Session, tag_ids: list[int]) -> list[Tag]:
+    """Fetch tags by their IDs."""
+    query = select(Tag).where(Tag.id.in_(tag_ids), Tag.deleted == False)
+    result = session.exec(query).all()
+    if len(result) != len(tag_ids):
+        missing_ids = set(tag_ids) - set(tag.id for tag in result)
+        raise HTTPException(404, f"Tags with IDs {missing_ids} not found")
+    return result
 
 
 
@@ -105,13 +118,18 @@ def delete_tag(
 # Post model CRUD
 
 def create_post(session:Session, data:PostCreate) -> Post:
-    """Create a post."""
+    """Create a post and associate tags with it."""
 
-    post_data = data.model_dump(exclude_unset=True)
+    post_data = data.model_dump(exclude={"tag_ids"})
     new_post = Post(**post_data)
     session.add(new_post)
+    if data.tag_ids:
+        tags = get_tags_by_ids(session, data.tag_ids)
+        new_post.tags.extend(tags)
+        print("TAGS 1", new_post.tags)
     session.commit()
     session.refresh(new_post)
+    print("TAGS 2", new_post.tags)
     return new_post
 
 
@@ -143,7 +161,7 @@ def list_posts(
 ) -> list[Post]:
     """List posts."""
 
-    query = select(Post).where(Post.deleted == False)
+    query = select(Post).options(selectinload(Post.tags)).where(Post.deleted == False)
     if filter:
         query = apply_filters(query, Post, filter)
     if sort:
