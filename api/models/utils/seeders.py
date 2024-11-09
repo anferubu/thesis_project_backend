@@ -1241,19 +1241,19 @@ brands = [
 ]
 
 motorcycles = [
-    {"id": 1, "model": "2023", "license_plate": "ABC123", "photo": None, "brand_id": 1, "owner_id": 1},
-    {"id": 2, "model": "2022", "license_plate": "XYZ456", "photo": None, "brand_id": 2, "owner_id": 2},
-    {"id": 3, "model": "2023", "license_plate": "KAW789", "photo": None, "brand_id": 2, "owner_id": 3},
-    {"id": 4, "model": "2022", "license_plate": "SUZ101", "photo": None, "brand_id": 1, "owner_id": 4},
-    {"id": 5, "model": "2023", "license_plate": "DUC202", "photo": None, "brand_id": 1, "owner_id": 5},
-    {"id": 6, "model": "2022", "license_plate": "BMW303", "photo": None, "brand_id": 3, "owner_id": 6},
-    {"id": 7, "model": "2023", "license_plate": "APR404", "photo": None, "brand_id": 4, "owner_id": 7},
-    {"id": 8, "model": "2022", "license_plate": "TRI505", "photo": None, "brand_id": 2, "owner_id": 8},
-    {"id": 9, "model": "2023", "license_plate": "HAR606", "photo": None, "brand_id": 1, "owner_id": 9},
-    {"id": 10, "model": "2022", "license_plate": "IND707", "photo": None, "brand_id": 3, "owner_id": 10},
-    {"id": 11, "model": "2023", "license_plate": "MGK808", "photo": None, "brand_id": 4, "owner_id": 1},
-    {"id": 12, "model": "2022", "license_plate": "BEN909", "photo": None, "brand_id": 2, "owner_id": 2},
-    {"id": 13, "model": "2023", "license_plate": "KTM010", "photo": None, "brand_id": 1, "owner_id": 3}
+    {"id": 1, "model": "2023", "license_plate": "ABC12D", "photo": None, "brand_id": 1, "owner_id": 1},
+    {"id": 2, "model": "2022", "license_plate": "XYZ45G", "photo": None, "brand_id": 2, "owner_id": 2},
+    {"id": 3, "model": "2023", "license_plate": "KAW78F", "photo": None, "brand_id": 2, "owner_id": 3},
+    {"id": 4, "model": "2022", "license_plate": "SUZ10H", "photo": None, "brand_id": 1, "owner_id": 4},
+    {"id": 5, "model": "2023", "license_plate": "DUC20I", "photo": None, "brand_id": 1, "owner_id": 5},
+    {"id": 6, "model": "2022", "license_plate": "BMW30J", "photo": None, "brand_id": 3, "owner_id": 6},
+    {"id": 7, "model": "2023", "license_plate": "APR40K", "photo": None, "brand_id": 4, "owner_id": 7},
+    {"id": 8, "model": "2022", "license_plate": "TRI50L", "photo": None, "brand_id": 2, "owner_id": 8},
+    {"id": 9, "model": "2023", "license_plate": "HAR60M", "photo": None, "brand_id": 1, "owner_id": 9},
+    {"id": 10, "model": "2022", "license_plate": "IND70N", "photo": None, "brand_id": 3, "owner_id": 10},
+    {"id": 11, "model": "2023", "license_plate": "MGK80O", "photo": None, "brand_id": 4, "owner_id": 1},
+    {"id": 12, "model": "2022", "license_plate": "BEN90P", "photo": None, "brand_id": 2, "owner_id": 2},
+    {"id": 13, "model": "2023", "license_plate": "KTM01Q", "photo": None, "brand_id": 1, "owner_id": 3}
 ]
 
 agreements = [
