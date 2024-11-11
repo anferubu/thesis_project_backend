@@ -71,7 +71,7 @@ class PostBase(SQLModel):
 
 class PostCreate(PostBase):
     title: Annotated[str, Field(min_length=3, max_length=100)]
-    content: Annotated[str, Field(max_length=2500)]
+    content: str
     status: PostStatus|None = None
     thumbnail: FilePath|None = None
     tag_ids: list[int] = []

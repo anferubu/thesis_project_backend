@@ -131,7 +131,7 @@ class ParticipationMemberList(SQLModel):
 
 class ReviewCreate(SQLModel):
     score: Annotated[int, Field(ge=1, le=5)]
-    comment: Annotated[str|None, Field(max_length=500)] = None
+    comment: str|None = None
 
     @model_validator(mode="before")
     def validate_schema(cls, values:Any) -> Any:
@@ -141,7 +141,7 @@ class ReviewCreate(SQLModel):
 
 class ReviewUpdate(ReviewCreate):
     score: Annotated[int|None, Field(ge=1, le=5)] = None
-    comment: Annotated[str|None, Field(max_length=500)] = None
+    comment: str|None = None
 
 
 class ReviewRead(SQLModel):

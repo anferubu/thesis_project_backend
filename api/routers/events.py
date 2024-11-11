@@ -351,10 +351,9 @@ def create_review(
         )
     review = crud.get_review(session, user.profile.id, event_id)
     if not review:
-        new_review = crud.create_review(
+        crud.create_review(
             session, user.profile.id, event_id, data
         )
-        event.reviews.append(new_review)
         return event.reviews
     else:
         raise HTTPException(
@@ -420,7 +419,7 @@ def get_review(
     """get a user review for an event."""
 
     user = get_user_by_id(session, user_id)
-    review = crud.get_review(session, event_id, user.profile.id)
+    review = crud.get_review(session, user.profile.id, event_id)
     if not review:
         raise HTTPException(
             404,
@@ -469,7 +468,7 @@ def delete_review(
         raise HTTPException(404, f"Event #{event_id} not found!")
     if not user:
         raise HTTPException(404, f"User #{user_id} not found!")
-    review = crud.get_review(session, event_id, user.profile.id)
+    review = crud.get_review(session, user.profile.id, event_id)
     if review:
         crud.delete_review(session, review, hard)
     else:

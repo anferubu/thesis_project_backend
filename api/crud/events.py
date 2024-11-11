@@ -168,7 +168,7 @@ def create_review(
     review = Review(
         author_id=profile_id,
         event_id=event_id,
-        attended=data.comment,
+        comment=data.comment,
         score=data.score
     )
     session.add(review)

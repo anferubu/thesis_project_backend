@@ -1,4 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from pathlib import Path
+import uuid
+
+from fastapi import APIRouter, HTTPException, UploadFile, File
 
 from api.crud import posts as crud
 from api.crud.users import get_user_by_id
@@ -178,8 +181,8 @@ def create_post(session:Session, data:PostCreate) -> Post:
     if not author:
         raise HTTPException(404, f"User #{data.author_id} not found!")
     data.author_id = author.profile.id
+    data.thumbnail = str(data.thumbnail)
     new_post = crud.create_post(session, data)
-    print("TAG 3", new_post.tags)
     return new_post
 
 
@@ -221,6 +224,23 @@ def delete_post(
 
 
 
+@post.post("/upload")
+def upload(file: UploadFile = File(...)):
+    try:
+        unique_filename = str(uuid.uuid4()) + Path(file.filename).suffix
+        upload_folder = Path("static/uploads/posts/thumbnails")
+        upload_folder.mkdir(parents=True, exist_ok=True)
+        file_path = upload_folder / unique_filename
+        with open(file_path, 'wb') as f:
+            f.write(file.file.read())
+    except Exception:
+        raise HTTPException(status_code=500, detail="Something went wrong")
+    finally:
+        file.file.close()
+    return {"file_path": file_path}
+
+
+
 # Post relationship endpoints
 
 @post.get("/posts/{post_id}/author", response_model=UserRead)
@@ -245,14 +265,16 @@ def list_post_tags(session:Session, post_id:int):
 
 
 
-@post.get("/posts/{post_id}/comments", response_model=list[CommentList])
+@post.get("/posts/{post_id}/comments", response_model=list[CommentRead])
 def list_post_comments(session:Session, post_id:int):
     """Get the comments of a post."""
 
     post = crud.get_post_by_id(session, post_id)
     if not post:
         raise HTTPException(404, f"Post #{post_id} not found!")
-    return post.comments
+    comments = sorted(post.comments, key=lambda comment: comment.created_at, reverse=True)
+    comments = [comment for comment in comments if comment.deleted == 0]
+    return comments
 
 
 
@@ -408,7 +430,7 @@ def list_comment_reactions(session:Session, comment_id:int):
 
 
 @comment.get(
-    "/comments/{comment_id}/replies", response_model=list[CommentList]
+    "/comments/{comment_id}/replies", response_model=list[CommentRead]
 )
 def list_comment_replies(session:Session, comment_id:int):
     """Get the replies of a comment."""
@@ -416,7 +438,8 @@ def list_comment_replies(session:Session, comment_id:int):
     comment = crud.get_comment_by_id(session, comment_id)
     if not comment:
         raise HTTPException(404, f"Comment #{comment_id} not found!")
-    return comment.replies
+    replies = [reply for reply in comment.replies if reply.deleted == 0]
+    return replies
 
 
 
